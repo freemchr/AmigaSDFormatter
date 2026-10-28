@@ -3,7 +3,7 @@
 A Windows desktop utility that prepares, diagnoses, backs up and fills SD cards for Amiga computers, without needing HDToolBox on the Amiga.
 
 - **Apollo A6000**: FAT32 data-transfer cards for the SD slot, and Amiga hard-drive (RDB) cards.
-- **Classic Amigas** (A500, A600, A1200, A2000, A3000, A4000, any other RDB machine, WinUAE): SD/CF-to-IDE hard-drive cards laid out exactly like a real Amiga hard drive, with Kickstart-aware size limits. Also FAT32 transfer cards, FAT32 USB sticks for Gotek/FlashFloppy, and **PiStorm (Emu68)** SD cards (FAT32 boot partition + Amiga 0x76 partition with an RDB).
+- **Classic Amigas** (A500, A600, A1200, A2000, A3000, A4000, any other RDB machine, WinUAE): SD/CF-to-IDE hard-drive cards laid out exactly like a real Amiga hard drive, with Kickstart-aware size limits. Also FAT32 transfer cards, FAT32 USB sticks for Gotek/FlashFloppy, and **PiStorm (Emu68)** SD cards (FAT32 boot partition + Amiga 0x76 partition with an RDB). For PiStorm the app downloads the latest Emu68 release from GitHub and installs it; you can add your own Kickstart ROM.
 - **Diagnose** an existing card without changing it, including likely reasons for an *"Uninitialized"* volume.
 - **Amiga Files**: drag and drop files between Windows and the FFS partitions on a card or image.
 - **Backup & Restore** whole cards, with SHA-256 checks and read-back verification.
@@ -100,4 +100,4 @@ See [docs/VERIFICATION.md](docs/VERIFICATION.md) for what still needs real hardw
 
 ## Not included
 
-No Kickstart ROMs, AmigaOS/Workbench files, ApolloOS images or third-party filesystem handlers are bundled. Supply your own licensed copies (for example pfs3aio from Aminet, or the ApolloOS image from Apollo).
+No Kickstart ROMs, AmigaOS/Workbench files, ApolloOS images or third-party filesystem handlers are bundled. Emu68 (MPL-2.0) is downloaded from its GitHub releases only when you prepare a PiStorm card. Supply your own licensed copies (for example pfs3aio from Aminet, or the ApolloOS image from Apollo).

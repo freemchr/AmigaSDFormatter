@@ -45,7 +45,7 @@
                     <TextBlock Text="Updates" Style="{StaticResource H2}"/>
                     <TextBlock Text="{Binding Version, StringFormat=Installed version: {0}}"/>
                     <TextBlock Style="{StaticResource Subtle}" FontSize="12" Margin="0,4,0,0"
-                               Text="This build does not check for updates automatically and makes no network connections. New versions are published on the project's releases page."/>
+                               Text="This build does not check for updates automatically. It only connects to the internet when you ask it to download Emu68 for a PiStorm card (from github.com). New versions are published on the project's releases page."/>
                 </StackPanel>
             </Border>
         </StackPanel>

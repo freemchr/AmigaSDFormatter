@@ -112,6 +112,8 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <TextBlock Text="Partition scheme"/>
                         <TextBlock Grid.Column="1" Text="{Binding SchemeText}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
@@ -125,6 +127,20 @@
                         <TextBlock Grid.Row="4" Text="Kickstart" Visibility="{Binding Hardware.HasModes, Converter={StaticResource VisibleWhen}}"/>
                         <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Hardware.Modes}" SelectedItem="{Binding Hardware.SelectedMode}" DisplayMemberPath="Name"
                                   Width="330" HorizontalAlignment="Right" Margin="0,3" Visibility="{Binding Hardware.HasModes, Converter={StaticResource VisibleWhen}}"/>
+                        <TextBlock Grid.Row="6" Text="Emu68" Visibility="{Binding IsEmu68Plan, Converter={StaticResource VisibleWhen}}"/>
+                        <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,3"
+                                    Visibility="{Binding IsEmu68Plan, Converter={StaticResource VisibleWhen}}">
+                            <CheckBox Content="Download and install latest" IsChecked="{Binding InstallEmu68}" Margin="0,0,10,0"/>
+                            <ComboBox ItemsSource="{Binding Emu68Variants}" SelectedItem="{Binding Emu68Variant}" Width="150" IsEnabled="{Binding InstallEmu68}"/>
+                        </StackPanel>
+                        <TextBlock Grid.Row="7" Text="Kickstart ROM" Visibility="{Binding IsEmu68Plan, Converter={StaticResource VisibleWhen}}"/>
+                        <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,3"
+                                    Visibility="{Binding IsEmu68Plan, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock Text="{Binding KickstartRomText}" FontWeight="SemiBold" Margin="0,0,10,0"/>
+                            <Button Content="Choose..." Command="{Binding ChooseKickstartRomCommand}" Padding="8,2" Margin="0"/>
+                            <Button Content="Clear" Command="{Binding ClearKickstartRomCommand}" Padding="8,2" Margin="6,0,0,0"
+                                    Visibility="{Binding KickstartRomPath, Converter={StaticResource VisibleWhen}}"/>
+                        </StackPanel>
                         <TextBlock Grid.Row="5" Text="Unused space" Foreground="{DynamicResource WarnBrush}" Visibility="{Binding HasUnused, Converter={StaticResource VisibleWhen}}"/>
                         <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding UnusedText}" Foreground="{DynamicResource WarnBrush}" FontWeight="SemiBold" HorizontalAlignment="Right"
                                    Visibility="{Binding HasUnused, Converter={StaticResource VisibleWhen}}"/>

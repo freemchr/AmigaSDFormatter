@@ -489,6 +489,8 @@ public sealed partial class PrepareViewModel : PageViewModel
                 ? "The card was prepared and every structure was read back and verified."
                 : "The card was written, but verification found differences. Do not use it until the problem is understood; see the failed checks below.";
             NextStepsText = NextSteps(plan, iface);
+            if (result.Passed && plan.Kind == LayoutKind.Emu68 && !TargetIsImage && InstallEmu68)
+                await InstallEmu68Async(_selectedIdentity!, ((IProgress<string>)progress));
             AppServices.Current.AddRecent("Prepare", target, result.Passed, $"{plan.Kind} for {iface.Name}");
         }
         catch (SafetyCheckFailedException ex)
