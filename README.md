@@ -1,0 +1,103 @@
+# Amiga SD Creator
+
+A Windows desktop utility that prepares, diagnoses, backs up and fills SD cards for Amiga computers, without needing HDToolBox on the Amiga.
+
+- **Apollo A6000**: FAT32 data-transfer cards for the SD slot, and Amiga hard-drive (RDB) cards.
+- **Classic Amigas** (A1200, A600, A4000, any other RDB machine, WinUAE): SD/CF-to-IDE hard-drive cards laid out exactly like a real Amiga hard drive, with Kickstart-aware size limits. Also FAT32 transfer cards for PCMCIA adapters.
+- **Diagnose** an existing card without changing it, including likely reasons for an *"Uninitialized"* volume.
+- **Amiga Files**: drag and drop files between Windows and the FFS partitions on a card or image.
+- **Backup & Restore** whole cards, with SHA-256 checks and read-back verification.
+
+> Status: version 0.1, pre-release. The on-disk formats are verified against independent tools (see [Verification](#verification)). **Nothing has been tested on real Amiga hardware yet.** Hardware profiles say exactly what is verified and what isn't.
+
+## Using it
+
+1. Run `AmigaSdCreator.exe`. Writing to cards needs administrator rights, and the app offers to restart elevated when that's required.
+2. **Select SD Card.** Only USB/SD card readers are offered. The Windows system disk is always protected.
+3. **Choose your Amiga** (top-right dropdown) and a **configuration tile** (e.g. *File Transfer* or *Hard Drive*).
+4. Check the summary (partition scheme, filesystem, partitions, boot partition, Kickstart, unused space).
+5. Press **Prepare SD Card**, review what's on the card now, and type `ERASE`.
+6. The app writes the layout, reads every structure back, and verifies it.
+
+*Customise partitions…* opens the full wizard: partition sizes, DosTypes, MaxTransfer, boot priority, and embedding a filesystem handler such as pfs3aio. *Create an image file instead* builds the same layout as a `.img`/`.hdf` file.
+
+### If your Amiga says "Uninitialized"
+
+Run **Diagnose**, pick the card and the slot you use it in. Common findings:
+
+| Finding | Meaning |
+|---|---|
+| exFAT | Most cards over 32 GB ship as exFAT. Amiga FAT handlers need FAT32. |
+| GPT, or no MBR | The documented A6000 recipe is MBR + one FAT32 partition. |
+| Leftover RDB behind an MBR | The card was once an Amiga hard drive, then reformatted on Windows. Amiga drivers find the old RDB first. |
+| RDB partition with no filesystem | Normal for new partitions: format them on the Amiga. |
+| PC layout used as a hard drive | Amiga hard drives need an RDB. The card isn't damaged. |
+
+The tool never calls a card "corrupt" just because Windows can't read it. Windows can't read Amiga partitions by design.
+
+## What gets written
+
+| Configuration | Layout |
+|---|---|
+| File Transfer | MBR, one partition type 0x0C at 1 MiB, FAT32 written by this app's own formatter (fatgen103 rules, fat32format/Rufus cluster table). The label is `SD0` for the A6000, as Apollo's FAQ instructs. |
+| Hard Drive | RDB at block 0 (RDSK, PART, FSHD/LSEG), 16 heads × 63 sectors, partitions cylinder-aligned after a ≥1 MiB RDB area. OFS/FFS partitions can be formatted immediately; PFS3/SFS partitions are left blank for the Amiga's `Format`. |
+
+Before writing, the first and last 1 MiB of the card are cleared so that no stale MBR/GPT/RDB remains.
+
+## Safety
+
+- Inspection is read-only; disks are opened read-only unless a write was confirmed.
+- System, boot and page-file disks can never be written, whatever the settings. Internal (SATA/NVMe) disks and disks over 512 GB are blocked unless enabled in Settings.
+- The card's identity (path, model, serial, unique ID, size, sector size) is captured when you select it. It is re-checked right before writing and again after opening the device. If anything differs, or the card has gone, nothing is written. The app never falls back to another disk.
+- Volumes on the card are locked and dismounted before raw writes.
+- Interrupted writes are reported as such ("the card is now incomplete"), never as success.
+- Logs (`%LOCALAPPDATA%\AmigaSdCreator\Logs`) use disk numbers and a short hash. They never contain serial numbers or file contents, and your user folder path is masked.
+
+## Building
+
+Requirements: .NET 10 SDK. The WPF app and Windows layer build on Windows. The core library, CLI and tests also build and run on Linux/macOS.
+
+```powershell
+dotnet build AmigaSdCreator.sln
+dotnet test tests\AmigaSdCreator.Core.Tests
+dotnet run --project src\AmigaSdCreator.App
+```
+
+Release packages: `pwsh build\publish.ps1` runs the tests and produces in `artifacts\`:
+
+- `AmigaSdCreator-<ver>-win-x64-portable.zip`: self-contained single-file app; no .NET install needed.
+- `asdc-<ver>-win-x64.zip`: command-line tool.
+- `AmigaSdCreator-<ver>-setup.exe`: only if Inno Setup 6 is installed. `build\installer.iss` has not yet been compiled.
+
+### Command-line tool (image files only)
+
+```
+asdc profiles
+asdc create data.img --size 8G --interface a6000-sd-data
+asdc create hdd.hdf  --size 4G --interface a1200-ide --use BootableSystem --mode ks31
+asdc inspect card.img --interface a6000-sd-data --report report.md
+```
+
+`asdc` never opens physical disks.
+
+## Verification
+
+- **89 automated tests** (`tests/AmigaSdCreator.Core.Tests`): partition tables, FAT32, FFS, the FFS file engine, layout limits, diagnostics fixtures (exFAT, GPT, stale RDB, superfloppy, unformatted RDB), safety gate, backup/restore including gzip, a fake-capacity card and an interrupted write.
+- **Interop with amitools 0.8.1** (rdbtool/xdftool, an independent implementation): our RDBs pass `rdbtool info/show`, and we read rdbtool-made RDBs. Our FFS volumes are readable and writable by xdftool. Files we write are unpacked byte-for-byte by xdftool (OFS and FFS, including extension blocks), and we read files xdftool wrote. These tests run automatically when amitools is installed:
+  ```
+  uv venv ~/.cache/asdc-tools/venv && uv pip install --python ~/.cache/asdc-tools/venv/bin/python amitools==0.8.1
+  ```
+  (or set `ASDC_AMITOOLS_BIN`). amitools is GPL-2.0; it's used only as a test oracle and isn't distributed.
+- **FAT32** output was cross-checked with pyfatfs (reads, writes, lists).
+
+See [docs/VERIFICATION.md](docs/VERIFICATION.md) for what still needs real hardware.
+
+## Documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): structure, design decisions, phase status
+- [docs/A6000-RESEARCH.md](docs/A6000-RESEARCH.md): Apollo A6000 storage findings, sources and open questions
+- [docs/VERIFICATION.md](docs/VERIFICATION.md): verification status and the hardware test checklist
+
+## Not included
+
+No Kickstart ROMs, AmigaOS/Workbench files, ApolloOS images or third-party filesystem handlers are bundled. Supply your own licensed copies (for example pfs3aio from Aminet, or the ApolloOS image from Apollo).

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AmigaSdCreator.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Profiles\profiles.json" LogicalName="AmigaSdCreator.Core.Profiles.profiles.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AmigaSdCreator.Core.Tests" />
+  </ItemGroup>
+</Project>

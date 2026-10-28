@@ -1,0 +1,53 @@
+<UserControl x:Class="AmigaSdCreator.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="20,16" MaxWidth="760" HorizontalAlignment="Left">
+            <TextBlock Text="Settings" Style="{StaticResource H1}" Margin="0,0,0,16"/>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Appearance" Style="{StaticResource H2}"/>
+                    <Label Content="Theme"/>
+                    <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" Width="200" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Default hardware profile" Style="{StaticResource H2}"/>
+                    <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding DefaultProfile}" DisplayMemberPath="Name" Width="300" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Logging" Style="{StaticResource H2}"/>
+                    <CheckBox Content="Write an operation log" IsChecked="{Binding FileLogging}"/>
+                    <TextBlock Style="{StaticResource Subtle}" FontSize="12" Margin="0,4,0,8"
+                               Text="The log records what was done to which disk number. Serial numbers, file contents and your user folder path are never written to it."/>
+                    <Button Content="Open log folder" Command="{Binding OpenLogFolderCommand}" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" BorderBrush="{DynamicResource WarnBrush}">
+                <StackPanel>
+                    <TextBlock Text="Target safety" Style="{StaticResource H2}"/>
+                    <CheckBox Content="Allow internal (SATA / NVMe / SCSI) disks as targets" IsChecked="{Binding AllowNonRemovableBus}"/>
+                    <CheckBox Content="Allow disks larger than 512 GB" IsChecked="{Binding AllowLargeDisks}"/>
+                    <TextBlock Style="{StaticResource Subtle}" FontSize="12" Margin="0,4,0,0"
+                               Text="Leave these off unless your card reader is reported incorrectly by Windows. The Windows system, boot and page-file disks can never be written, whatever these settings say."/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Updates" Style="{StaticResource H2}"/>
+                    <TextBlock Text="{Binding Version, StringFormat=Installed version: {0}}"/>
+                    <TextBlock Style="{StaticResource Subtle}" FontSize="12" Margin="0,4,0,0"
+                               Text="This build does not check for updates automatically and makes no network connections. New versions are published on the project's releases page."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

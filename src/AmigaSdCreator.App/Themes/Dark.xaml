@@ -1,0 +1,25 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Dark theme: deep navy with Workbench orange and blue accents. -->
+    <SolidColorBrush x:Key="WindowBrush" Color="#11151C"/>
+    <SolidColorBrush x:Key="SidebarBrush" Color="#0B0E13"/>
+    <SolidColorBrush x:Key="PanelBrush" Color="#1A2029"/>
+    <SolidColorBrush x:Key="PanelAltBrush" Color="#222A35"/>
+    <SolidColorBrush x:Key="InputBrush" Color="#0F1319"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#2E3846"/>
+    <SolidColorBrush x:Key="TextBrush" Color="#E8ECF2"/>
+    <SolidColorBrush x:Key="SubtleTextBrush" Color="#93A0B2"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#FF8800"/>
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#1A0E00"/>
+    <SolidColorBrush x:Key="BlueBrush" Color="#4D8FE0"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="#263140"/>
+    <SolidColorBrush x:Key="SelectedBrush" Color="#2C4466"/>
+    <SolidColorBrush x:Key="OkBrush" Color="#4CC38A"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="#6FA8F0"/>
+    <SolidColorBrush x:Key="WarnBrush" Color="#F2B33D"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="#F0605A"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#C8372F"/>
+    <SolidColorBrush x:Key="SidebarTextBrush" Color="#C9D2DE"/>
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#1A212B"/>
+    <SolidColorBrush x:Key="SidebarSelectedBrush" Color="#232D3A"/>
+</ResourceDictionary>

@@ -1,0 +1,160 @@
+<UserControl x:Class="AmigaSdCreator.App.Views.DiagnoseView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AmigaSdCreator.App.ViewModels">
+    <Grid Margin="20,16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="340"/>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Source + hardware -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Diagnose Card" Style="{StaticResource H1}"/>
+                <TextBlock Style="{StaticResource Subtle}" Margin="0,0,0,14" Text="Read-only analysis. Nothing on the card is changed."/>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="1. What to inspect" Style="{StaticResource H2}"/>
+                        <RadioButton Content="An SD card" IsChecked="{Binding UseImageFile, Converter={StaticResource Not}}" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6"/>
+                        <ListBox ItemsSource="{Binding Devices.Cards}" SelectedItem="{Binding SelectedDevice}" ItemTemplate="{StaticResource DeviceTemplate}" Height="130"
+                                 IsEnabled="{Binding UseImageFile, Converter={StaticResource Not}}"/>
+                        <Button Content="Refresh" Command="{Binding Devices.RefreshCommand}" HorizontalAlignment="Left" Margin="0,6,0,10" Padding="10,3"/>
+                        <RadioButton Content="A disk image file" IsChecked="{Binding UseImageFile}" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Browse..." Command="{Binding BrowseImageCommand}" Margin="6,0,0,0"/>
+                            <TextBox Text="{Binding ImagePath}" IsReadOnly="True"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="2. Where it will be used" Style="{StaticResource H2}"/>
+                        <Label Content="Amiga model"/>
+                        <ComboBox ItemsSource="{Binding Hardware.Profiles}" SelectedItem="{Binding Hardware.SelectedProfile}" DisplayMemberPath="Name" Margin="0,0,0,8"/>
+                        <Label Content="Slot / connection"/>
+                        <ComboBox ItemsSource="{Binding Hardware.Interfaces}" SelectedItem="{Binding Hardware.SelectedInterface}" DisplayMemberPath="Name" Margin="0,0,0,8"/>
+                        <Label Content="Intended use"/>
+                        <ComboBox ItemsSource="{Binding Hardware.Uses}" SelectedItem="{Binding Hardware.SelectedUse}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate><TextBlock Text="{Binding Converter={StaticResource UseText}}"/></DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                </Border>
+
+                <Button Content="Analyse" Style="{StaticResource PrimaryButton}" Command="{Binding AnalyseCommand}" HorizontalAlignment="Left" Padding="22,8"/>
+                <TextBlock Text="Analysing..." Style="{StaticResource Subtle}" Margin="0,8,0,0" Visibility="{Binding IsRunning, Converter={StaticResource VisibleWhen}}"/>
+                <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ErrorBrush}" Margin="0,8,0,0" Visibility="{Binding Error, Converter={StaticResource VisibleWhen}}"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Report -->
+        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Border Style="{StaticResource Card}" Visibility="{Binding Report, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
+                    <StackPanel>
+                        <TextBlock Text="No report yet" Style="{StaticResource H2}"/>
+                        <TextBlock Style="{StaticResource Subtle}" Text="Choose a card or image, tell the tool where you plan to use it, and press Analyse. The report explains what is on the card, whether it suits the selected Amiga slot, and - if the Amiga shows 'Uninitialized' - the most likely reasons."/>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Visibility="{Binding Report, Converter={StaticResource VisibleWhen}}">
+                    <Border Style="{StaticResource Card}" BorderBrush="{Binding Report.Verdict, Converter={StaticResource StatusBrush}}" BorderThickness="2">
+                        <StackPanel>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Export report..." Command="{Binding ExportCommand}" Margin="0"/>
+                                <TextBlock Text="{Binding Report.Verdict, Converter={StaticResource VerdictText}}" FontSize="20" FontWeight="SemiBold"
+                                           Foreground="{Binding Report.Verdict, Converter={StaticResource StatusBrush}}"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding Report.Summary}" Margin="0,4,0,0"/>
+                            <TextBlock Style="{StaticResource Subtle}" FontSize="12" Margin="0,4,0,0">
+                                <Run Text="Confidence:"/> <Run Text="{Binding Report.Confidence, Mode=OneWay}"/>
+                                <Run Text="  •  Layout:"/> <Run Text="{Binding Report.Inspection.SchemeDescription, Mode=OneWay}"/>
+                                <Run Text="  •  Capacity:"/> <Run Text="{Binding Report.Inspection.LengthBytes, Mode=OneWay, Converter={StaticResource Bytes}}"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Visibility="{Binding Report.Recommendations, Converter={StaticResource VisibleWhen}}">
+                        <StackPanel>
+                            <TextBlock Text="What to do" Style="{StaticResource H2}"/>
+                            <ItemsControl ItemsSource="{Binding Report.Recommendations}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <Button DockPanel.Dock="Right" Content="Go" Padding="12,3" Margin="10,0,0,0" VerticalAlignment="Top"
+                                                    Command="{Binding DataContext.ActOnRecommendationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                    Visibility="{Binding Action, Converter={StaticResource VisibleWhen}}"/>
+                                            <TextBlock Text="{Binding Text}"/>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Findings" Style="{StaticResource H2}"/>
+                            <ItemsControl ItemsSource="{Binding Report.Findings}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="26"/>
+                                                <ColumnDefinition/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Severity, Converter={StaticResource Glyph}}" Foreground="{Binding Severity, Converter={StaticResource StatusBrush}}" FontSize="15"/>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock FontWeight="SemiBold">
+                                                    <Run Text="{Binding Title, Mode=OneWay}"/>
+                                                    <Run Text="{Binding Confidence, Mode=OneWay, StringFormat=  (confidence: {0})}" FontWeight="Normal" Foreground="{DynamicResource SubtleTextBrush}" FontSize="11"/>
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource Subtle}" Visibility="{Binding Detail, Converter={StaticResource VisibleWhen}}"/>
+                                                <TextBlock Text="Possible cause of an 'Uninitialized' volume" FontSize="11" Foreground="{DynamicResource WarnBrush}"
+                                                           Visibility="{Binding ExplainsUninitialized, Converter={StaticResource VisibleWhen}}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Partitions" Style="{StaticResource H2}"/>
+                            <DataGrid ItemsSource="{Binding Report.Inspection.Partitions}" IsReadOnly="True" MaxHeight="260">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Table" Binding="{Binding Table}"/>
+                                    <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
+                                    <DataGridTextColumn Header="Start" Binding="{Binding StartByte, Converter={StaticResource Bytes}}"/>
+                                    <DataGridTextColumn Header="Size" Binding="{Binding LengthBytes, Converter={StaticResource Bytes}}"/>
+                                    <DataGridTextColumn Header="Type" Binding="{Binding TypeDescription}"/>
+                                    <DataGridTextColumn Header="Filesystem" Binding="{Binding Filesystem.DisplayName}"/>
+                                    <DataGridTextColumn Header="Label" Binding="{Binding Filesystem.Label}"/>
+                                    <DataGridCheckBoxColumn Header="Boot" Binding="{Binding Bootable}"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Callout}" Visibility="{Binding Report.Interface.Unverified, Converter={StaticResource VisibleWhen}}">
+                        <StackPanel>
+                            <TextBlock Text="Not yet verified for this slot" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <ItemsControl ItemsSource="{Binding Report.Interface.Unverified}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding StringFormat=• {0}}" Style="{StaticResource Subtle}"/></DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

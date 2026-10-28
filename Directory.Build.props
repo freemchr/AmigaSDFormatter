@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Version>0.1.0</Version>
+    <Company>Amiga SD Creator contributors</Company>
+    <Product>Amiga SD Creator</Product>
+    <Copyright>Copyright (c) 2026 Amiga SD Creator contributors</Copyright>
+  </PropertyGroup>
+</Project>

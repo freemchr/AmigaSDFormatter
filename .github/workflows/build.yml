@@ -1,0 +1,30 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install amitools (test oracle for RDB/FFS interop tests)
+        run: |
+          python -m venv "$env:RUNNER_TEMP\amitools"
+          & "$env:RUNNER_TEMP\amitools\Scripts\pip" install amitools==0.8.1
+          "ASDC_AMITOOLS_BIN=$env:RUNNER_TEMP\amitools\Scripts" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - run: dotnet build AmigaSdCreator.sln -c Release
+      - run: dotnet test tests/AmigaSdCreator.Core.Tests -c Release --no-build
+      - name: Package
+        run: pwsh build/publish.ps1 -SkipTests
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/*.zip

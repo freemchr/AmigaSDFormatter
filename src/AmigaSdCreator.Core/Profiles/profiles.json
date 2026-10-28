@@ -1,0 +1,621 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "apollo-faq",
+      "title": "Apollo Computer support FAQ",
+      "url": "https://www.apollo-computer.com/faq.php",
+      "retrieved": "2026-10-28"
+    },
+    {
+      "id": "apollo-a6000-page",
+      "title": "Apollo A6000 product page",
+      "url": "https://www.apollo-computer.com/a6000.php",
+      "retrieved": "2026-10-28"
+    },
+    {
+      "id": "apollo-a6000-manual",
+      "title": "A6000 manual (Apollo Team Wiki)",
+      "url": "https://wiki.apollo-computer.com/doku.php?id=a6000manual:start",
+      "retrieved": "2026-10-28",
+      "note": "The wiki returned HTTP 500 for every page on 2026-10-28. Statements attributed to it were taken from search-engine excerpts of the page and must be re-checked against the live manual."
+    },
+    {
+      "id": "apollo-wiki-microsd",
+      "title": "Apollo Team Wiki: system_tools:microsd",
+      "url": "https://wiki.apollo-computer.com/doku.php?id=system_tools%3Amicrosd",
+      "retrieved": "2026-10-28",
+      "note": "Unreachable (HTTP 500) on 2026-10-28; content from search-engine excerpts."
+    },
+    {
+      "id": "obligement-a6000",
+      "title": "Obligement: A6000 review (French)",
+      "url": "http://obligement.free.fr/articles/a6000.php",
+      "retrieved": "2026-10-28"
+    },
+    {
+      "id": "hardblocks-h",
+      "title": "AmigaOS Documentation Wiki: RDB (devices/hardblocks.h)",
+      "url": "https://wiki.amigaos.net/wiki/RDB",
+      "retrieved": "2026-10-28"
+    },
+    {
+      "id": "adf-faq",
+      "title": "The ADF (Amiga Disk File) format FAQ - OFS/FFS layout",
+      "url": "http://lclevy.free.fr/adflib/adf_info.html",
+      "retrieved": "2026-10-28"
+    },
+    {
+      "id": "hw-test-2026-10-28",
+      "title": "Hardware test: A6000, FAT32 card prepared by Amiga SD Creator 0.1.0",
+      "url": "",
+      "retrieved": "2026-10-28",
+      "note": "Card prepared on Windows 11 with the File Transfer configuration mounted as SD0 via SD Card > Mount; files read and written on the Amiga."
+    }
+  ],
+  "profiles": [
+    {
+      "id": "apollo-a6000",
+      "name": "Apollo A6000",
+      "family": "Apollo",
+      "status": "Partial",
+      "summary": "ApolloOS (AROS based) boots from the bundled 128 GB CompactFlash card. Two full-size SD slots are used for data exchange and, per the A6000 manual, as an alternate RDB boot device.",
+      "interfaces": [
+        {
+          "id": "a6000-sd-data",
+          "name": "SD slot - data exchange card (FAT32)",
+          "kind": "SdSlot",
+          "status": "Verified",
+          "uses": [
+            "DataExchange"
+          ],
+          "layouts": [
+            "MbrFat32"
+          ],
+          "bootable": "No",
+          "defaults": {
+            "fatLabel": "SD0"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "recommendedMaxCapacityBytes": 34359738368,
+            "maxFatClusterBytes": 32768,
+            "requiresMbr": true
+          },
+          "facts": [
+            {
+              "text": "Apollo supports SDHC microSD/SD cards for data exchange.",
+              "source": "apollo-faq"
+            },
+            {
+              "text": "If ApolloOS can already read the card, Apollo advises not to reformat it.",
+              "source": "apollo-faq"
+            },
+            {
+              "text": "If the card is not readable, format it FAT32 with Rufus: non-bootable, volume label SD0, quick format, no extended label files.",
+              "source": "apollo-faq"
+            },
+            {
+              "text": "ApolloOS is not compatible with every factory FAT32 format; reformatting with the Rufus recipe is the documented fix.",
+              "source": "apollo-faq"
+            },
+            {
+              "text": "Mount the card from the ApolloOS Start Menu: SD Card > Mount.",
+              "source": "apollo-faq"
+            },
+            {
+              "text": "Tested: a card prepared by this app (MBR, FAT32, label SD0) mounts as SD0 and files can be read and written.",
+              "source": "hw-test-2026-10-28"
+            }
+          ],
+          "unverified": [
+            "Behaviour with SDXC cards larger than 32 GB (Apollo lists SDHC). FAT32 is still created, but a warning is shown.",
+            "Whether ApolloOS reads a FAT32 card that has no MBR (superfloppy layout)."
+          ],
+          "tileTitle": "File Transfer",
+          "tileSubtitle": "SD slot • FAT32"
+        },
+        {
+          "id": "a6000-sd-hdd",
+          "name": "SD slot - Amiga hard drive card (RDB)",
+          "kind": "SdSlot",
+          "status": "Experimental",
+          "uses": [
+            "HardDrive",
+            "BootableSystem"
+          ],
+          "layouts": [
+            "Rdb"
+          ],
+          "bootable": "Unverified",
+          "defaults": {
+            "dosType": "DOS\\3",
+            "maxTransfer": "0x1FE00",
+            "mask": "0x7FFFFFFE",
+            "deviceNamePrefix": "SDH",
+            "volumeNamePrefix": "Work"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "maxFfsPartitionBytes": 4294967296
+          },
+          "romFileSystems": [
+            "DOS\\1",
+            "DOS\\3"
+          ],
+          "facts": [
+            {
+              "text": "The A6000 manual describes one SD slot as removable storage or an alternate boot device using a native (RDB) bootable OS image.",
+              "source": "apollo-a6000-manual"
+            },
+            {
+              "text": "Partitions that have not been formatted appear as 'Uninitialized' after they are mounted and must be formatted.",
+              "source": "apollo-wiki-microsd"
+            },
+            {
+              "text": "ApolloROM only boots ApolloOS; Kickstart ROMs only boot AmigaOS.",
+              "source": "apollo-a6000-manual"
+            }
+          ],
+          "unverified": [
+            "Which physical slot (left or right) accepts the RDB boot card - sources disagree.",
+            "Whether ApolloOS auto-mounts RDB partitions from the SD slot or requires SDMount / a mountlist.",
+            "Whether ApolloOS ships a PFS3 or SFS handler, or the handler must be embedded in the RDB.",
+            "Largest FFS partition ApolloOS handles reliably on sagasd.device (4 GiB is used as a conservative cap).",
+            "Correct MaxTransfer for sagasd.device (0x1FE00 is used as the conservative classic value)."
+          ],
+          "tileTitle": "Hard Drive",
+          "tileSubtitle": "SD slot • Amiga RDB"
+        },
+        {
+          "id": "a6000-cf-system",
+          "name": "CompactFlash (IDE) - ApolloOS system drive",
+          "kind": "Ide",
+          "status": "Protected",
+          "uses": [
+            "BootableSystem"
+          ],
+          "layouts": [
+            "ImageRestore"
+          ],
+          "bootable": "Yes",
+          "constraints": {
+            "restoreOnly": true
+          },
+          "facts": [
+            {
+              "text": "The A6000 ships with a 128 GB CompactFlash card with ApolloOS preinstalled.",
+              "source": "apollo-a6000-page"
+            },
+            {
+              "text": "ApolloOS distribution images are written to the card with an image writer such as Win32DiskImager.",
+              "source": "apollo-faq"
+            },
+            {
+              "text": "The A6000 boots ApolloOS from the CompactFlash card.",
+              "source": "obligement-a6000"
+            }
+          ],
+          "unverified": [
+            "The partition layout of the shipped ApolloOS CompactFlash image. This app never repartitions this card; it only backs it up or restores an authorised image."
+          ],
+          "tileTitle": "System Drive",
+          "tileSubtitle": "CompactFlash • backup / restore only"
+        }
+      ]
+    },
+    {
+      "id": "amiga-1200",
+      "name": "Amiga 1200",
+      "family": "Classic",
+      "status": "Partial",
+      "summary": "Internal 44-pin Gayle IDE with an SD or CF adapter, partitioned with an RDB exactly like a real Amiga hard drive (as HDToolBox does).",
+      "interfaces": [
+        {
+          "id": "a1200-ide",
+          "name": "Internal IDE (SD/CF-to-IDE adapter)",
+          "kind": "Ide",
+          "status": "Partial",
+          "uses": [
+            "HardDrive",
+            "BootableSystem"
+          ],
+          "layouts": [
+            "Rdb"
+          ],
+          "bootable": "Yes",
+          "defaults": {
+            "dosType": "DOS\\3",
+            "maxTransfer": "0x1FE00",
+            "mask": "0x7FFFFFFE",
+            "deviceNamePrefix": "DH",
+            "volumeNamePrefix": "Work"
+          },
+          "constraints": {
+            "maxSectorSize": 512
+          },
+          "romFileSystems": [
+            "DOS\\1",
+            "DOS\\3"
+          ],
+          "compatibilityModes": [
+            {
+              "id": "ks31",
+              "name": "Kickstart 3.0 / 3.1 (ROM scsi.device, FFS 40)",
+              "maxPartitionEndBytes": 4294967296,
+              "maxFfsPartitionBytes": 2147483648,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "The ROM scsi.device cannot address beyond 4 GB; every partition must end below that point.",
+                "FFS 40 partitions are kept at or below 2 GB, the common safe limit."
+              ]
+            },
+            {
+              "id": "ks31-td64",
+              "name": "Kickstart 3.1 + TD64/NSD-capable scsi.device and filesystem",
+              "maxFfsPartitionBytes": 4294967296,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "Requires a patched scsi.device (e.g. from AmigaOS 3.9 / 3.1.4) and a TD64/NSD aware filesystem such as PFS3AIO or FFS 45+ loaded before mounting large partitions.",
+                "The boot partition should still end below 4 GB."
+              ],
+              "bootPartitionMaxEndBytes": 4294967296
+            },
+            {
+              "id": "ks32",
+              "name": "Kickstart 3.1.4 / 3.2",
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3",
+                "DOS\\7"
+              ],
+              "notes": [
+                "The 3.1.4/3.2 ROM scsi.device and FFS support large disks. Long filenames (DOS\\7) require 3.2."
+              ]
+            }
+          ],
+          "facts": [
+            {
+              "text": "The RDSK block must be within the first 16 blocks of the disk.",
+              "source": "hardblocks-h"
+            },
+            {
+              "text": "FFS boot block holds the DosType; the root block is at the middle of the partition.",
+              "source": "adf-faq"
+            }
+          ],
+          "unverified": [
+            "Not yet tested on real A1200 hardware; layouts are validated with amitools (rdbtool/xdftool)."
+          ],
+          "tileTitle": "Internal HDD",
+          "tileSubtitle": "IDE-to-SD • Amiga RDB"
+        },
+        {
+          "id": "a1200-pcmcia",
+          "name": "PCMCIA slot - CF/SD adapter (FAT32 data card)",
+          "kind": "Usb",
+          "tileTitle": "File Transfer",
+          "tileSubtitle": "PCMCIA adapter • FAT32",
+          "status": "Experimental",
+          "uses": [
+            "DataExchange"
+          ],
+          "layouts": [
+            "MbrFat32"
+          ],
+          "bootable": "No",
+          "defaults": {
+            "fatLabel": "AMIGA"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "recommendedMaxCapacityBytes": 34359738368,
+            "maxFatClusterBytes": 32768,
+            "requiresMbr": true
+          },
+          "facts": [],
+          "unverified": [
+            "Needs a PCMCIA card driver (e.g. compactflash.device) and a FAT filesystem handler (e.g. fat95, or CrossDOS on AmigaOS 3.1.4/3.2) installed on the Amiga.",
+            "Which card sizes and FAT32 cluster sizes the installed handler accepts; 32 GB or smaller is assumed to be safest.",
+            "Many SD-to-PCMCIA adapters are unreliable on the A600/A1200 PCMCIA port; this has not been tested."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "amiga-600",
+      "name": "Amiga 600",
+      "family": "Classic",
+      "status": "Experimental",
+      "summary": "Internal 44-pin Gayle IDE, same RDB layout as the A1200. Kickstart 2.05 has additional scsi.device limits.",
+      "interfaces": [
+        {
+          "id": "a600-ide",
+          "name": "Internal IDE (SD/CF-to-IDE adapter)",
+          "kind": "Ide",
+          "status": "Experimental",
+          "uses": [
+            "HardDrive",
+            "BootableSystem"
+          ],
+          "layouts": [
+            "Rdb"
+          ],
+          "bootable": "Yes",
+          "defaults": {
+            "dosType": "DOS\\3",
+            "maxTransfer": "0x1FE00",
+            "mask": "0x7FFFFFFE",
+            "deviceNamePrefix": "DH",
+            "volumeNamePrefix": "Work"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "maxPartitionEndBytes": 4294967296,
+            "maxFfsPartitionBytes": 2147483648
+          },
+          "romFileSystems": [
+            "DOS\\1",
+            "DOS\\3"
+          ],
+          "facts": [
+            {
+              "text": "The RDSK block must be within the first 16 blocks of the disk.",
+              "source": "hardblocks-h"
+            }
+          ],
+          "unverified": [
+            "Kickstart 2.05 scsi.device revision-specific limits; not tested on hardware."
+          ],
+          "tileTitle": "Internal HDD",
+          "tileSubtitle": "IDE-to-SD • Amiga RDB"
+        },
+        {
+          "id": "a600-pcmcia",
+          "name": "PCMCIA slot - CF/SD adapter (FAT32 data card)",
+          "kind": "Usb",
+          "tileTitle": "File Transfer",
+          "tileSubtitle": "PCMCIA adapter • FAT32",
+          "status": "Experimental",
+          "uses": [
+            "DataExchange"
+          ],
+          "layouts": [
+            "MbrFat32"
+          ],
+          "bootable": "No",
+          "defaults": {
+            "fatLabel": "AMIGA"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "recommendedMaxCapacityBytes": 34359738368,
+            "maxFatClusterBytes": 32768,
+            "requiresMbr": true
+          },
+          "facts": [],
+          "unverified": [
+            "Needs a PCMCIA card driver (e.g. compactflash.device) and a FAT filesystem handler (e.g. fat95, or CrossDOS on AmigaOS 3.1.4/3.2) installed on the Amiga.",
+            "Which card sizes and FAT32 cluster sizes the installed handler accepts; 32 GB or smaller is assumed to be safest.",
+            "Many SD-to-PCMCIA adapters are unreliable on the A600/A1200 PCMCIA port; this has not been tested."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "amiga-4000",
+      "name": "Amiga 4000",
+      "family": "Classic",
+      "status": "Experimental",
+      "summary": "Internal 40-pin IDE (A4000 Gayle-like controller) with RDB partitioning.",
+      "interfaces": [
+        {
+          "id": "a4000-ide",
+          "name": "Internal IDE (SD/CF-to-IDE adapter)",
+          "kind": "Ide",
+          "status": "Experimental",
+          "uses": [
+            "HardDrive",
+            "BootableSystem"
+          ],
+          "layouts": [
+            "Rdb"
+          ],
+          "bootable": "Yes",
+          "defaults": {
+            "dosType": "DOS\\3",
+            "maxTransfer": "0x1FE00",
+            "mask": "0x7FFFFFFE",
+            "deviceNamePrefix": "DH",
+            "volumeNamePrefix": "Work"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "maxPartitionEndBytes": 4294967296,
+            "maxFfsPartitionBytes": 2147483648
+          },
+          "romFileSystems": [
+            "DOS\\1",
+            "DOS\\3"
+          ],
+          "facts": [
+            {
+              "text": "The RDSK block must be within the first 16 blocks of the disk.",
+              "source": "hardblocks-h"
+            }
+          ],
+          "unverified": [
+            "Not tested on hardware; Kickstart 3.1 limits assumed."
+          ],
+          "tileTitle": "Internal HDD",
+          "tileSubtitle": "IDE-to-SD • Amiga RDB"
+        }
+      ]
+    },
+    {
+      "id": "amiga-generic",
+      "name": "Other Amiga / WinUAE",
+      "family": "Classic",
+      "status": "Partial",
+      "summary": "Any Amiga with an IDE, SCSI or emulated hard drive interface that uses a standard Rigid Disk Block, plus FAT32 data cards. Also suitable for WinUAE hardfiles.",
+      "interfaces": [
+        {
+          "id": "generic-rdb",
+          "name": "Hard drive (standard RDB)",
+          "kind": "Ide",
+          "status": "Partial",
+          "uses": [
+            "HardDrive",
+            "BootableSystem"
+          ],
+          "layouts": [
+            "Rdb"
+          ],
+          "bootable": "Yes",
+          "defaults": {
+            "dosType": "DOS\\3",
+            "maxTransfer": "0x1FE00",
+            "mask": "0x7FFFFFFE",
+            "deviceNamePrefix": "DH",
+            "volumeNamePrefix": "Work"
+          },
+          "constraints": {
+            "maxSectorSize": 512
+          },
+          "romFileSystems": [
+            "DOS\\1",
+            "DOS\\3"
+          ],
+          "compatibilityModes": [
+            {
+              "id": "ks31",
+              "name": "Kickstart 3.0 / 3.1 (ROM scsi.device, FFS 40)",
+              "maxPartitionEndBytes": 4294967296,
+              "maxFfsPartitionBytes": 2147483648,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "The ROM scsi.device cannot address beyond 4 GB; every partition must end below that point.",
+                "FFS 40 partitions are kept at or below 2 GB, the common safe limit."
+              ]
+            },
+            {
+              "id": "ks31-td64",
+              "name": "Kickstart 3.1 + TD64/NSD-capable scsi.device and filesystem",
+              "maxFfsPartitionBytes": 4294967296,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "Requires a patched scsi.device (e.g. from AmigaOS 3.9 / 3.1.4) and a TD64/NSD aware filesystem such as PFS3AIO or FFS 45+ loaded before mounting large partitions.",
+                "The boot partition should still end below 4 GB."
+              ],
+              "bootPartitionMaxEndBytes": 4294967296
+            },
+            {
+              "id": "ks32",
+              "name": "Kickstart 3.1.4 / 3.2",
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3",
+                "DOS\\7"
+              ],
+              "notes": [
+                "The 3.1.4/3.2 ROM scsi.device and FFS support large disks. Long filenames (DOS\\7) require 3.2."
+              ]
+            }
+          ],
+          "facts": [
+            {
+              "text": "The RDSK block must be within the first 16 blocks of the disk.",
+              "source": "hardblocks-h"
+            }
+          ],
+          "unverified": [
+            "Controller-specific limits (MaxTransfer, maximum disk size) are not known for unlisted hardware; the Kickstart mode limits are applied.",
+            "Not tested on hardware; layouts are validated with amitools."
+          ],
+          "tileTitle": "Hard Drive",
+          "tileSubtitle": "Any controller • Amiga RDB"
+        },
+        {
+          "id": "generic-fat",
+          "name": "FAT32 data card",
+          "kind": "Usb",
+          "tileTitle": "File Transfer",
+          "tileSubtitle": "FAT32 • needs a FAT handler on the Amiga",
+          "status": "Experimental",
+          "uses": [
+            "DataExchange"
+          ],
+          "layouts": [
+            "MbrFat32"
+          ],
+          "bootable": "No",
+          "defaults": {
+            "fatLabel": "AMIGA"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "recommendedMaxCapacityBytes": 34359738368,
+            "maxFatClusterBytes": 32768,
+            "requiresMbr": true
+          },
+          "facts": [],
+          "unverified": [
+            "The Amiga needs a FAT filesystem handler (e.g. fat95, or CrossDOS on AmigaOS 3.1.4/3.2) and a driver for the reader it is connected through."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "amiga-500",
+      "name": "Amiga 500",
+      "family": "Classic",
+      "status": "Planned",
+      "summary": "Requires a side-slot or trapdoor IDE controller; requirements depend on the controller and its driver.",
+      "interfaces": []
+    },
+    {
+      "id": "amiga-2000",
+      "name": "Amiga 2000",
+      "family": "Classic",
+      "status": "Planned",
+      "summary": "Zorro II SCSI/IDE controllers; requirements depend on the controller.",
+      "interfaces": []
+    },
+    {
+      "id": "amiga-3000",
+      "name": "Amiga 3000",
+      "family": "Classic",
+      "status": "Planned",
+      "summary": "Onboard SCSI (scsi.device); SD-to-SCSI adapters not yet profiled.",
+      "interfaces": []
+    },
+    {
+      "id": "pistorm",
+      "name": "PiStorm (Emu68)",
+      "family": "Accelerator",
+      "status": "Planned",
+      "summary": "Emu68 boots from an SD card with an MBR FAT32 boot partition and Amiga partitions (type 0x76). Not supported yet.",
+      "interfaces": []
+    },
+    {
+      "id": "gotek",
+      "name": "Gotek (FlashFloppy)",
+      "family": "Floppy emulator",
+      "status": "Planned",
+      "summary": "USB stick holding ADF floppy images. Not supported yet.",
+      "interfaces": []
+    }
+  ]
+}

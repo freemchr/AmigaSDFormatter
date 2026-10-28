@@ -1,0 +1,10 @@
+bin/
+obj/
+artifacts/
+*.user
+.vs/
+TestResults/
+*.img
+*.hdf
+*.img.gz
+!tests/**/Fixtures/**
