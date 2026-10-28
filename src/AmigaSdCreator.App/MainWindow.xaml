@@ -12,7 +12,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,10,16,10">
+        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,14,16,14">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource HeaderButton}" Command="{Binding NavigateCommand}" CommandParameter="Diagnose" AutomationProperties.Name="Diagnose" ToolTip="Diagnose a card (read-only)">
@@ -36,7 +36,7 @@
                         Visibility="{Binding IsHome, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" Margin="-8,0,8,0" ToolTip="Back">
                     <TextBlock Text="&#xE72B;" Style="{StaticResource Icon}" FontSize="16"/>
                 </Button>
-                <Image Source="{DynamicResource LogoImage}" Height="54" HorizontalAlignment="Left" VerticalAlignment="Center"
+                <Image Source="{DynamicResource LogoImage}" Height="72" Stretch="Uniform" Margin="0,4" HorizontalAlignment="Left" VerticalAlignment="Center"
                        RenderOptions.BitmapScalingMode="HighQuality" ToolTip="Amiga SD Creator - prepare Amiga-compatible storage from Windows"
                        AutomationProperties.Name="Amiga SD Creator"/>
             </DockPanel>
