@@ -125,8 +125,8 @@
                         <TextBlock Grid.Row="3" Text="Boot partition" Visibility="{Binding SelectedPreset.CanBoot, Converter={StaticResource VisibleWhen}}"/>
                         <CheckBox Grid.Row="3" Grid.Column="1" Style="{StaticResource Switch}" IsChecked="{Binding BootEnabled}" HorizontalAlignment="Right"
                                   Visibility="{Binding SelectedPreset.CanBoot, Converter={StaticResource VisibleWhen}}"/>
-                        <TextBlock Grid.Row="4" Text="Kickstart" Visibility="{Binding Hardware.HasModes, Converter={StaticResource VisibleWhen}}"/>
-                        <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Hardware.Modes}" SelectedItem="{Binding Hardware.SelectedMode}" DisplayMemberPath="Name"
+                        <TextBlock Grid.Row="4" Text="Kickstart in your Amiga" ToolTip="The Kickstart version fitted in your Amiga. It sets safe partition sizes for that ROM; no Kickstart file is needed or copied to the card." Visibility="{Binding Hardware.HasModes, Converter={StaticResource VisibleWhen}}"/>
+                        <ComboBox Grid.Row="4" Grid.Column="1" ToolTip="The Kickstart version fitted in your Amiga. It sets safe partition sizes for that ROM; no Kickstart file is needed or copied to the card." ItemsSource="{Binding Hardware.Modes}" SelectedItem="{Binding Hardware.SelectedMode}" DisplayMemberPath="Name"
                                   Width="330" HorizontalAlignment="Right" Margin="0,3" Visibility="{Binding Hardware.HasModes, Converter={StaticResource VisibleWhen}}"/>
                         <TextBlock Grid.Row="6" Text="Emu68" Visibility="{Binding IsEmu68Plan, Converter={StaticResource VisibleWhen}}"/>
                         <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,3"
