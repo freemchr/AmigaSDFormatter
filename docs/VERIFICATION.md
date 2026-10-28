@@ -19,10 +19,11 @@
 | Date | Test | Result |
 |---|---|---|
 | 2026-10-28 | Physical card prepared with the A6000 *File Transfer* configuration (MBR + FAT32, label SD0) on Windows 11, then mounted on an Apollo A6000 via SD Card > Mount | Mounted as SD0; files read and written on the Amiga. Read-back verification passed on Windows. |
+| 2026-10-28 | Large folder copied from a mapped network drive (R:) to that card with the app's Files page (FAT32 path), then used on the A6000 | Worked without errors; files copied on the Amiga locally. |
 
 ## Not yet verified (needs hardware or a human)
 
-1. **Writing a physical card** with Restore, or Amiga Files with "Allow changes" (Prepare has now been exercised on a real card; see above).
+1. **Writing a physical card** with Restore, or Amiga Files on an FFS (hard-drive) partition with "Allow changes". Prepare and FAT32 file copying have been exercised on real hardware; see above.
 2. **Backup of a physical card** (raw read through `RawDiskDevice`).
 3. **Lock/dismount behaviour** with Explorer windows open on the card.
 4. **A6000:** which slot the FAT32 card was tested in; an RDB card in each slot (auto-mount? boot?). See the open questions in A6000-RESEARCH.md.

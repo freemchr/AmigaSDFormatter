@@ -57,7 +57,7 @@ The same `DiskImageBuilder` and `LayoutVerifier` produce image files, so an imag
 | 2. Image preparation: MBR+FAT32, RDB+FFS, validation, amitools-verified fixtures | Done |
 | 3. Physical writing: identity checks, elevation, lock/dismount, write verification, backup/restore | Implemented; **not yet exercised on a physical card** (see VERIFICATION.md) |
 | 4. OS installation | Partial: authorised image restore, and copying files onto FFS partitions (Amiga Files). Not done: guided Workbench install from ADF/install media, `.info`/protection-bit metadata via WinUAE `.uaem` sidecars, and boot-block installation. |
-| 5. More hardware | A600/A4000/generic RDB and PCMCIA FAT32 marked Experimental; A500/A2000/A3000, PiStorm and Gotek listed as Planned. PFS3 supported by embedding a user-supplied handler; PFS3/SFS formatting is left to the Amiga. |
+| 5. More hardware | A500, A600, A2000, A3000, A4000, generic RDB, PCMCIA FAT32 and Gotek (FlashFloppy USB stick) available as Experimental. PiStorm/Emu68 (MBR with FAT32 boot + 0x76 Amiga partitions) is not implemented yet. PFS3 supported by embedding a user-supplied handler; PFS3/SFS formatting is left to the Amiga. |
 
 ## Known limitations
 

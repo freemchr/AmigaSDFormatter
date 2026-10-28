@@ -50,7 +50,13 @@
       "title": "Hardware test: A6000, FAT32 card prepared by Amiga SD Creator 0.1.0",
       "url": "",
       "retrieved": "2026-10-28",
-      "note": "Card prepared on Windows 11 with the File Transfer configuration mounted as SD0 via SD Card > Mount; files read and written on the Amiga."
+      "note": "Card prepared on Windows 11 with the File Transfer configuration mounted as SD0 via SD Card > Mount; files read and written on the Amiga. A large folder was then copied from a network drive with the app's Files page and read on the A6000."
+    },
+    {
+      "id": "flashfloppy-faq",
+      "title": "FlashFloppy wiki: Troubleshooting FAQ",
+      "url": "https://github.com/keirf/flashfloppy/wiki/Troubleshooting-FAQ",
+      "retrieved": "2026-10-28"
     }
   ],
   "profiles": [
@@ -455,6 +461,34 @@
           ],
           "tileTitle": "Internal HDD",
           "tileSubtitle": "IDE-to-SD • Amiga RDB"
+        },
+        {
+          "id": "a4000-fat",
+          "name": "FAT32 data card",
+          "kind": "Usb",
+          "tileTitle": "File Transfer",
+          "tileSubtitle": "FAT32 • needs a FAT handler on the Amiga",
+          "status": "Experimental",
+          "uses": [
+            "DataExchange"
+          ],
+          "layouts": [
+            "MbrFat32"
+          ],
+          "bootable": "No",
+          "defaults": {
+            "fatLabel": "AMIGA"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "recommendedMaxCapacityBytes": 34359738368,
+            "maxFatClusterBytes": 32768,
+            "requiresMbr": true
+          },
+          "facts": [],
+          "unverified": [
+            "The Amiga needs a FAT filesystem handler (e.g. fat95, or CrossDOS on AmigaOS 3.1.4/3.2) and a driver for the reader it is connected through."
+          ]
         }
       ]
     },
@@ -581,41 +615,400 @@
       "id": "amiga-500",
       "name": "Amiga 500",
       "family": "Classic",
-      "status": "Planned",
-      "summary": "Requires a side-slot or trapdoor IDE controller; requirements depend on the controller and its driver.",
-      "interfaces": []
+      "status": "Experimental",
+      "summary": "Any Amiga 500 / 500+ with a hard-drive controller that uses a standard RDB.",
+      "interfaces": [
+        {
+          "id": "a500-rdb",
+          "name": "Hard drive (Side or trapdoor IDE/SD controller)",
+          "kind": "Ide",
+          "status": "Experimental",
+          "uses": [
+            "HardDrive",
+            "BootableSystem"
+          ],
+          "layouts": [
+            "Rdb"
+          ],
+          "bootable": "Yes",
+          "defaults": {
+            "dosType": "DOS\\3",
+            "maxTransfer": "0x1FE00",
+            "mask": "0x7FFFFFFE",
+            "deviceNamePrefix": "DH",
+            "volumeNamePrefix": "Work"
+          },
+          "constraints": {
+            "maxSectorSize": 512
+          },
+          "romFileSystems": [
+            "DOS\\1",
+            "DOS\\3"
+          ],
+          "compatibilityModes": [
+            {
+              "id": "ks31",
+              "name": "Kickstart 3.0 / 3.1 (ROM scsi.device, FFS 40)",
+              "maxPartitionEndBytes": 4294967296,
+              "maxFfsPartitionBytes": 2147483648,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "The ROM scsi.device cannot address beyond 4 GB; every partition must end below that point.",
+                "FFS 40 partitions are kept at or below 2 GB, the common safe limit."
+              ]
+            },
+            {
+              "id": "ks31-td64",
+              "name": "Kickstart 3.1 + TD64/NSD-capable scsi.device and filesystem",
+              "maxFfsPartitionBytes": 4294967296,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "Requires a patched scsi.device (e.g. from AmigaOS 3.9 / 3.1.4) and a TD64/NSD aware filesystem such as PFS3AIO or FFS 45+ loaded before mounting large partitions.",
+                "The boot partition should still end below 4 GB."
+              ],
+              "bootPartitionMaxEndBytes": 4294967296
+            },
+            {
+              "id": "ks32",
+              "name": "Kickstart 3.1.4 / 3.2",
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3",
+                "DOS\\7"
+              ],
+              "notes": [
+                "The 3.1.4/3.2 ROM scsi.device and FFS support large disks. Long filenames (DOS\\7) require 3.2."
+              ]
+            }
+          ],
+          "facts": [
+            {
+              "text": "The RDSK block must be within the first 16 blocks of the disk.",
+              "source": "hardblocks-h"
+            }
+          ],
+          "unverified": [
+            "Autobooting from the card needs Kickstart 2.0+ or a controller with its own boot ROM; controller-specific MaxTransfer and size limits are not known.",
+            "Not tested on this model; the layout is the standard RDB validated with amitools."
+          ],
+          "tileTitle": "Hard Drive",
+          "tileSubtitle": "Side or trapdoor IDE/SD controller • Amiga RDB"
+        },
+        {
+          "id": "a500-fat",
+          "name": "FAT32 data card",
+          "kind": "Usb",
+          "tileTitle": "File Transfer",
+          "tileSubtitle": "FAT32 • needs a FAT handler on the Amiga",
+          "status": "Experimental",
+          "uses": [
+            "DataExchange"
+          ],
+          "layouts": [
+            "MbrFat32"
+          ],
+          "bootable": "No",
+          "defaults": {
+            "fatLabel": "AMIGA"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "recommendedMaxCapacityBytes": 34359738368,
+            "maxFatClusterBytes": 32768,
+            "requiresMbr": true
+          },
+          "facts": [],
+          "unverified": [
+            "The Amiga needs a FAT filesystem handler (e.g. fat95, or CrossDOS on AmigaOS 3.1.4/3.2) and a driver for the reader it is connected through."
+          ]
+        }
+      ]
     },
     {
       "id": "amiga-2000",
       "name": "Amiga 2000",
       "family": "Classic",
-      "status": "Planned",
-      "summary": "Zorro II SCSI/IDE controllers; requirements depend on the controller.",
-      "interfaces": []
+      "status": "Experimental",
+      "summary": "Amiga 2000 with a Zorro II IDE or SCSI controller (SD/CF adapters) using a standard RDB.",
+      "interfaces": [
+        {
+          "id": "a2000-rdb",
+          "name": "Hard drive (Zorro IDE or SCSI controller)",
+          "kind": "Ide",
+          "status": "Experimental",
+          "uses": [
+            "HardDrive",
+            "BootableSystem"
+          ],
+          "layouts": [
+            "Rdb"
+          ],
+          "bootable": "Yes",
+          "defaults": {
+            "dosType": "DOS\\3",
+            "maxTransfer": "0x1FE00",
+            "mask": "0x7FFFFFFE",
+            "deviceNamePrefix": "DH",
+            "volumeNamePrefix": "Work"
+          },
+          "constraints": {
+            "maxSectorSize": 512
+          },
+          "romFileSystems": [
+            "DOS\\1",
+            "DOS\\3"
+          ],
+          "compatibilityModes": [
+            {
+              "id": "ks31",
+              "name": "Kickstart 3.0 / 3.1 (ROM scsi.device, FFS 40)",
+              "maxPartitionEndBytes": 4294967296,
+              "maxFfsPartitionBytes": 2147483648,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "The ROM scsi.device cannot address beyond 4 GB; every partition must end below that point.",
+                "FFS 40 partitions are kept at or below 2 GB, the common safe limit."
+              ]
+            },
+            {
+              "id": "ks31-td64",
+              "name": "Kickstart 3.1 + TD64/NSD-capable scsi.device and filesystem",
+              "maxFfsPartitionBytes": 4294967296,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "Requires a patched scsi.device (e.g. from AmigaOS 3.9 / 3.1.4) and a TD64/NSD aware filesystem such as PFS3AIO or FFS 45+ loaded before mounting large partitions.",
+                "The boot partition should still end below 4 GB."
+              ],
+              "bootPartitionMaxEndBytes": 4294967296
+            },
+            {
+              "id": "ks32",
+              "name": "Kickstart 3.1.4 / 3.2",
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3",
+                "DOS\\7"
+              ],
+              "notes": [
+                "The 3.1.4/3.2 ROM scsi.device and FFS support large disks. Long filenames (DOS\\7) require 3.2."
+              ]
+            }
+          ],
+          "facts": [
+            {
+              "text": "The RDSK block must be within the first 16 blocks of the disk.",
+              "source": "hardblocks-h"
+            }
+          ],
+          "unverified": [
+            "Controller-specific MaxTransfer and size limits are not known.",
+            "Not tested on this model; the layout is the standard RDB validated with amitools."
+          ],
+          "tileTitle": "Hard Drive",
+          "tileSubtitle": "Zorro IDE or SCSI controller • Amiga RDB"
+        },
+        {
+          "id": "a2000-fat",
+          "name": "FAT32 data card",
+          "kind": "Usb",
+          "tileTitle": "File Transfer",
+          "tileSubtitle": "FAT32 • needs a FAT handler on the Amiga",
+          "status": "Experimental",
+          "uses": [
+            "DataExchange"
+          ],
+          "layouts": [
+            "MbrFat32"
+          ],
+          "bootable": "No",
+          "defaults": {
+            "fatLabel": "AMIGA"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "recommendedMaxCapacityBytes": 34359738368,
+            "maxFatClusterBytes": 32768,
+            "requiresMbr": true
+          },
+          "facts": [],
+          "unverified": [
+            "The Amiga needs a FAT filesystem handler (e.g. fat95, or CrossDOS on AmigaOS 3.1.4/3.2) and a driver for the reader it is connected through."
+          ]
+        }
+      ]
     },
     {
       "id": "amiga-3000",
       "name": "Amiga 3000",
       "family": "Classic",
-      "status": "Planned",
-      "summary": "Onboard SCSI (scsi.device); SD-to-SCSI adapters not yet profiled.",
-      "interfaces": []
-    },
-    {
-      "id": "pistorm",
-      "name": "PiStorm (Emu68)",
-      "family": "Accelerator",
-      "status": "Planned",
-      "summary": "Emu68 boots from an SD card with an MBR FAT32 boot partition and Amiga partitions (type 0x76). Not supported yet.",
-      "interfaces": []
+      "status": "Experimental",
+      "summary": "Onboard SCSI with an SD-to-SCSI adapter, using a standard RDB.",
+      "interfaces": [
+        {
+          "id": "a3000-rdb",
+          "name": "Hard drive (Onboard SCSI (SD-to-SCSI adapter))",
+          "kind": "Ide",
+          "status": "Experimental",
+          "uses": [
+            "HardDrive",
+            "BootableSystem"
+          ],
+          "layouts": [
+            "Rdb"
+          ],
+          "bootable": "Yes",
+          "defaults": {
+            "dosType": "DOS\\3",
+            "maxTransfer": "0x1FE00",
+            "mask": "0x7FFFFFFE",
+            "deviceNamePrefix": "DH",
+            "volumeNamePrefix": "Work"
+          },
+          "constraints": {
+            "maxSectorSize": 512
+          },
+          "romFileSystems": [
+            "DOS\\1",
+            "DOS\\3"
+          ],
+          "compatibilityModes": [
+            {
+              "id": "ks31",
+              "name": "Kickstart 3.0 / 3.1 (ROM scsi.device, FFS 40)",
+              "maxPartitionEndBytes": 4294967296,
+              "maxFfsPartitionBytes": 2147483648,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "The ROM scsi.device cannot address beyond 4 GB; every partition must end below that point.",
+                "FFS 40 partitions are kept at or below 2 GB, the common safe limit."
+              ]
+            },
+            {
+              "id": "ks31-td64",
+              "name": "Kickstart 3.1 + TD64/NSD-capable scsi.device and filesystem",
+              "maxFfsPartitionBytes": 4294967296,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "Requires a patched scsi.device (e.g. from AmigaOS 3.9 / 3.1.4) and a TD64/NSD aware filesystem such as PFS3AIO or FFS 45+ loaded before mounting large partitions.",
+                "The boot partition should still end below 4 GB."
+              ],
+              "bootPartitionMaxEndBytes": 4294967296
+            },
+            {
+              "id": "ks32",
+              "name": "Kickstart 3.1.4 / 3.2",
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3",
+                "DOS\\7"
+              ],
+              "notes": [
+                "The 3.1.4/3.2 ROM scsi.device and FFS support large disks. Long filenames (DOS\\7) require 3.2."
+              ]
+            }
+          ],
+          "facts": [
+            {
+              "text": "The RDSK block must be within the first 16 blocks of the disk.",
+              "source": "hardblocks-h"
+            }
+          ],
+          "unverified": [
+            "SD-to-SCSI adapters (e.g. SCSI2SD) present their own geometry; check the adapter's settings.",
+            "Not tested on this model; the layout is the standard RDB validated with amitools."
+          ],
+          "tileTitle": "Hard Drive",
+          "tileSubtitle": "Onboard SCSI (SD-to-SCSI adapter) • Amiga RDB"
+        },
+        {
+          "id": "a3000-fat",
+          "name": "FAT32 data card",
+          "kind": "Usb",
+          "tileTitle": "File Transfer",
+          "tileSubtitle": "FAT32 • needs a FAT handler on the Amiga",
+          "status": "Experimental",
+          "uses": [
+            "DataExchange"
+          ],
+          "layouts": [
+            "MbrFat32"
+          ],
+          "bootable": "No",
+          "defaults": {
+            "fatLabel": "AMIGA"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "recommendedMaxCapacityBytes": 34359738368,
+            "maxFatClusterBytes": 32768,
+            "requiresMbr": true
+          },
+          "facts": [],
+          "unverified": [
+            "The Amiga needs a FAT filesystem handler (e.g. fat95, or CrossDOS on AmigaOS 3.1.4/3.2) and a driver for the reader it is connected through."
+          ]
+        }
+      ]
     },
     {
       "id": "gotek",
       "name": "Gotek (FlashFloppy)",
       "family": "Floppy emulator",
-      "status": "Planned",
-      "summary": "USB stick holding ADF floppy images. Not supported yet.",
-      "interfaces": []
+      "status": "Experimental",
+      "summary": "Gotek floppy emulator running FlashFloppy: a FAT32 USB stick holding ADF floppy images.",
+      "interfaces": [
+        {
+          "id": "gotek-usb",
+          "name": "USB stick for FlashFloppy (FAT32)",
+          "kind": "Usb",
+          "tileTitle": "USB Stick",
+          "tileSubtitle": "FlashFloppy • FAT32 for ADF images",
+          "status": "Experimental",
+          "uses": [
+            "DataExchange"
+          ],
+          "layouts": [
+            "MbrFat32"
+          ],
+          "bootable": "No",
+          "defaults": {
+            "fatLabel": "GOTEK"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "maxFatClusterBytes": 32768,
+            "requiresMbr": true
+          },
+          "facts": [
+            {
+              "text": "The USB stick must be FAT32 formatted.",
+              "source": "flashfloppy-faq"
+            }
+          ],
+          "unverified": [
+            "FlashFloppy's partition table requirements (an MBR with one FAT32 partition is created).",
+            "Copy ADF images onto the stick with Windows Explorer after preparing it."
+          ]
+        }
+      ]
     }
   ]
 }
