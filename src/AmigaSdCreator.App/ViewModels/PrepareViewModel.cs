@@ -88,7 +88,7 @@ public sealed partial class PrepareViewModel : PageViewModel
     public long DeviceBytes => TargetIsImage ? ParseSize(ImageSizeText) ?? 0 : SelectedDevice?.Disk.SizeBytes ?? 0;
     public int SectorSize => TargetIsImage ? 512 : SelectedDevice?.Disk.LogicalSectorSize ?? 512;
     public bool IsFatPlan => Plan?.Kind == LayoutKind.MbrFat32;
-    public bool IsRdbPlan => Plan?.Kind == LayoutKind.Rdb;
+    public bool IsRdbPlan => Plan?.Kind is LayoutKind.Rdb or LayoutKind.Emu68;
     public bool IsProtectedInterface => Hardware.SelectedInterface?.Status == VerificationStatus.Protected;
     public bool IsExperimental => Hardware.SelectedInterface?.Status == VerificationStatus.Experimental;
     public bool NeedsElevation => !TargetIsImage && !_main.IsElevated;
@@ -419,8 +419,10 @@ public sealed partial class PrepareViewModel : PageViewModel
                 lines.Add($"Partition: starts at 1 MiB, {Format.Bytes((long)Plan.FatSectorCount * Plan.SectorSize)}");
                 lines.Add($"Filesystem: FAT32, label '{Plan.FatLabel}', {Format.Bytes(Plan.FatClusterBytes ?? 0)} clusters");
             }
-            else if (Plan.Kind == LayoutKind.Rdb && Plan.Geometry is { } g)
+            else if (Plan.Kind is LayoutKind.Rdb or LayoutKind.Emu68 && Plan.Geometry is { } g)
             {
+                if (Plan.Kind == LayoutKind.Emu68)
+                    lines.Add($"MBR: partition 1 FAT32 '{Plan.FatLabel}' {Format.Bytes((long)Plan.FatSectorCount * Plan.SectorSize)} (Emu68 boot), partition 2 type 0x76 {Format.Bytes(Plan.AmigaRegionBytes)} holding the RDB below");
                 lines.Add($"Partition table: Amiga Rigid Disk Block at block 0; geometry {g.Cylinders} cyl x {g.Heads} heads x {g.Sectors} sectors");
                 lines.Add($"Reserved for RDB: {Plan.RdbCylinders} cylinders ({Format.Bytes(Plan.RdbCylinders * Plan.CylinderBytes)})");
                 foreach (var p in Plan.Partitions)
@@ -519,10 +521,20 @@ public sealed partial class PrepareViewModel : PageViewModel
         }
         if (plan.Kind == LayoutKind.MbrFat32)
         {
-            lines.Add("Eject the card safely from Windows, insert it in the A6000 and mount it from the ApolloOS Start Menu: SD Card > Mount.");
-            lines.Add("Windows will show the card as a normal drive labelled " + plan.FatLabel + ".");
+            lines.Add("Windows shows the card as a normal drive labelled " + plan.FatLabel + ": copy files onto it with Explorer or the Files page, then eject it safely.");
+            lines.Add(iface.Id switch
+            {
+                var id when id.StartsWith("a6000", StringComparison.Ordinal) => "On the A6000, mount it from the ApolloOS Start Menu: SD Card > Mount.",
+                "gotek-usb" => "Copy your ADF floppy images onto the stick, then plug it into the Gotek.",
+                _ => "On the Amiga, mount it with your FAT filesystem handler (e.g. fat95, or CrossDOS on AmigaOS 3.1.4/3.2).",
+            });
         }
-        else if (plan.Kind == LayoutKind.Rdb)
+        if (plan.Kind == LayoutKind.Emu68)
+        {
+            lines.Add($"Copy the files from an Emu68 release (and your Kickstart ROM, if your config uses one) onto the {plan.FatLabel} drive that Windows now shows, then eject the card.");
+            lines.Add("Under AmigaOS the Amiga partitions are on brcm-sdhc.device (Pi 3 / Zero 2) or brcm-emmc.device (Pi 4 / CM4).");
+        }
+        if (plan.Kind is LayoutKind.Rdb or LayoutKind.Emu68)
         {
             lines.Add("Windows cannot read Amiga partitions. If Windows offers to format or initialise this card, choose Cancel - doing so would erase it.");
             lines.Add("Use 'Amiga Files' in this app to copy files onto the FFS partitions.");

@@ -57,6 +57,19 @@
       "title": "FlashFloppy wiki: Troubleshooting FAQ",
       "url": "https://github.com/keirf/flashfloppy/wiki/Troubleshooting-FAQ",
       "retrieved": "2026-10-28"
+    },
+    {
+      "id": "emu68-readme",
+      "title": "Emu68 README (GitHub)",
+      "url": "https://github.com/michalsc/Emu68",
+      "retrieved": "2026-10-28"
+    },
+    {
+      "id": "retrosix-pistorm",
+      "title": "RetroSix wiki: PiStorm Emu68 SD card / formatting drives",
+      "url": "https://www.retrosix.wiki/pistorm-emu68-format-drives-amiga",
+      "retrieved": "2026-10-28",
+      "note": "Article body requires login; facts taken from search-engine excerpts."
     }
   ],
   "profiles": [
@@ -964,6 +977,85 @@
           "facts": [],
           "unverified": [
             "The Amiga needs a FAT filesystem handler (e.g. fat95, or CrossDOS on AmigaOS 3.1.4/3.2) and a driver for the reader it is connected through."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pistorm",
+      "name": "PiStorm (Emu68)",
+      "family": "Accelerator",
+      "status": "Experimental",
+      "summary": "PiStorm accelerator running Emu68 on a Raspberry Pi: the SD card holds a FAT32 boot partition for Emu68 and an Amiga partition (type 0x76) with its own RDB.",
+      "interfaces": [
+        {
+          "id": "pistorm-sd",
+          "name": "Raspberry Pi SD card (Emu68)",
+          "kind": "SdSlot",
+          "tileTitle": "Emu68 SD Card",
+          "tileSubtitle": "FAT32 boot + Amiga 0x76 RDB",
+          "status": "Experimental",
+          "uses": [
+            "HardDrive",
+            "BootableSystem"
+          ],
+          "layouts": [
+            "Emu68"
+          ],
+          "bootable": "Unverified",
+          "defaults": {
+            "fatLabel": "EMU68",
+            "dosType": "DOS\\3",
+            "maxTransfer": "0x1FE00",
+            "mask": "0x7FFFFFFE",
+            "deviceNamePrefix": "DH",
+            "volumeNamePrefix": "Work"
+          },
+          "constraints": {
+            "maxSectorSize": 512,
+            "maxFatClusterBytes": 32768
+          },
+          "compatibilityModes": [
+            {
+              "id": "ks32",
+              "name": "Kickstart 3.1.4 / 3.2",
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3",
+                "DOS\\7"
+              ],
+              "notes": [
+                "Large partitions are fine with the 3.1.4/3.2 FFS."
+              ]
+            },
+            {
+              "id": "ks31",
+              "name": "Kickstart 3.1 (FFS 40)",
+              "maxFfsPartitionBytes": 2147483648,
+              "romFileSystems": [
+                "DOS\\1",
+                "DOS\\3"
+              ],
+              "notes": [
+                "FFS 40 partitions are kept at or below 2 GB."
+              ]
+            }
+          ],
+          "facts": [
+            {
+              "text": "Emu68 boots from the contents of its install directory copied onto a FAT32 or FAT16 formatted SD card.",
+              "source": "emu68-readme"
+            },
+            {
+              "text": "Amiga partitions on the card use MBR partition type 0x76; under AmigaOS they are reached through the brcm-sdhc.device (Pi 3/Zero 2) or brcm-emmc.device (Pi 4/CM4).",
+              "source": "retrosix-pistorm"
+            }
+          ],
+          "unverified": [
+            "That each 0x76 partition is presented by Emu68 as its own unit containing a standard RDB (this tool writes one RDB inside the 0x76 partition).",
+            "Boot partition size: 256 MB is created; Emu68 itself needs far less.",
+            "The Emu68 files (from an Emu68 release) and a Kickstart ROM are not included: copy them onto the EMU68 boot partition with Windows Explorer after preparing.",
+            "Not tested on PiStorm hardware; structures are validated with amitools."
           ]
         }
       ]

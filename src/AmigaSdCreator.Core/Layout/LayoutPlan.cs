@@ -54,7 +54,9 @@ public sealed record LayoutPlan
     public uint FatStartLba { get; init; } = 2048;
     public uint FatSectorCount { get; init; }
 
-    // RDB
+    // RDB. For Emu68 the RDB lives inside the MBR partition starting at AmigaStartLba; all RDB offsets are relative to it.
+    public uint AmigaStartLba { get; init; }
+    public long AmigaRegionBytes { get; init; }
     public RdbGeometry? Geometry { get; init; }
     public uint RdbCylinders { get; init; } = 2;
     public IReadOnlyList<PartitionPlan> Partitions { get; init; } = [];
@@ -68,6 +70,7 @@ public sealed record LayoutPlan
     {
         LayoutKind.Rdb when Geometry is not null => DeviceBytes - (Partitions.Count == 0 ? RdbCylinders * CylinderBytes : (Partitions.Max(p => p.HighCyl) + 1L) * CylinderBytes),
         LayoutKind.MbrFat32 => DeviceBytes - ((long)FatStartLba + FatSectorCount) * SectorSize,
+        LayoutKind.Emu68 when Geometry is not null => AmigaRegionBytes - (Partitions.Count == 0 ? RdbCylinders : Partitions.Max(p => p.HighCyl) + 1L) * CylinderBytes,
         _ => 0,
     };
 

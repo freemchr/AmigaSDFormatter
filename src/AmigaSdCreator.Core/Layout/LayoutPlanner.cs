@@ -22,6 +22,7 @@ public static class LayoutPlanner
         {
             LayoutKind.MbrFat32 => RecommendFat(profile, iface, use, deviceBytes, sectorSize),
             LayoutKind.Rdb => RecommendRdb(profile, iface, use, deviceBytes, sectorSize, compatibilityModeId),
+            LayoutKind.Emu68 => RecommendEmu68(profile, iface, use, deviceBytes, sectorSize, compatibilityModeId),
             LayoutKind.ImageRestore => new LayoutPlan
             {
                 Kind = LayoutKind.ImageRestore, DeviceBytes = deviceBytes, SectorSize = sectorSize,
@@ -105,6 +106,32 @@ public static class LayoutPlanner
             Partitions = parts,
         };
         return Recalculate(plan, limits.MaxEnd);
+    }
+
+    public const long Emu68BootBytes = 256 * MiB;
+
+    /// <summary>
+    /// PiStorm / Emu68: partition 1 is a FAT32 boot partition (for the Emu68 release files), partition 2
+    /// (type 0x76) takes the rest of the card and holds a standard RDB with Amiga partitions.
+    /// </summary>
+    private static LayoutPlan RecommendEmu68(HardwareProfile profile, StorageInterfaceProfile iface, IntendedUse use, long deviceBytes, int sectorSize, string? modeId)
+    {
+        uint bootSectors = (uint)(Emu68BootBytes / sectorSize);
+        uint amigaStart = (FatAlignmentLba + bootSectors + FatAlignmentLba - 1) / FatAlignmentLba * FatAlignmentLba;
+        long regionSectors = Math.Min(deviceBytes / sectorSize - amigaStart, uint.MaxValue);
+        if (regionSectors * sectorSize < 64 * MiB) throw new InvalidOperationException("The card is too small for a PiStorm layout.");
+        var inner = RecommendRdb(profile, iface, use, regionSectors * sectorSize, sectorSize, modeId);
+        return inner with
+        {
+            Kind = LayoutKind.Emu68,
+            DeviceBytes = deviceBytes,
+            FatLabel = iface.Defaults.FatLabel ?? "EMU68",
+            FatStartLba = FatAlignmentLba,
+            FatSectorCount = bootSectors,
+            FatClusterBytes = Fat32Formatter.ChooseClusterBytes((long)bootSectors * sectorSize),
+            AmigaStartLba = amigaStart,
+            AmigaRegionBytes = regionSectors * sectorSize,
+        };
     }
 
     private static PartitionPlan NewPartition(StorageInterfaceProfile iface, string dev, string vol, long bytes, DosType dosType, bool bootable) => new()

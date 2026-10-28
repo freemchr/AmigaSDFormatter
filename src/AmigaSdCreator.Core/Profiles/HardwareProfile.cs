@@ -31,6 +31,8 @@ public enum LayoutKind
     Rdb,
     /// <summary>Restore a complete, authorised disk image; no layout is generated.</summary>
     ImageRestore,
+    /// <summary>PiStorm / Emu68: MBR with a FAT32 boot partition and an Amiga partition (type 0x76) holding an RDB.</summary>
+    Emu68,
 }
 
 public enum Bootability { No, Yes, Unverified }

@@ -85,6 +85,7 @@ public sealed partial class PrepareViewModel
     {
         LayoutKind.MbrFat32 => "MBR (PC)",
         LayoutKind.Rdb => "Amiga RDB",
+        LayoutKind.Emu68 => "MBR: boot + Amiga (0x76)",
         LayoutKind.ImageRestore => "Restore image",
         _ => "—",
     };
@@ -93,13 +94,14 @@ public sealed partial class PrepareViewModel
     {
         LayoutKind.MbrFat32 => $"FAT32 • label {Plan.FatLabel}",
         LayoutKind.Rdb => string.Join(", ", Plan.Partitions.Select(p => p.DosType.FriendlyName).Distinct()),
+        LayoutKind.Emu68 => "FAT32 boot, " + string.Join(", ", Plan.Partitions.Select(p => p.DosType.FriendlyName).Distinct()),
         _ => "—",
     };
 
     public string PartitionsText => Plan?.Kind switch
     {
         LayoutKind.MbrFat32 => $"1 × {Format.Bytes((long)Plan.FatSectorCount * Plan.SectorSize)}",
-        LayoutKind.Rdb when Plan.Partitions.Count > 0 => Plan.Partitions.Count == 1
+        LayoutKind.Rdb or LayoutKind.Emu68 when Plan.Partitions.Count > 0 => Plan.Partitions.Count == 1
             ? $"{Plan.Partitions[0].DeviceName}: {Format.Bytes(Plan.PartitionBytes(Plan.Partitions[0]))}"
             : $"{Plan.Partitions.Count} × up to {Format.Bytes(Plan.Partitions.Max(Plan.PartitionBytes))} ({Plan.Partitions[0].DeviceName}–{Plan.Partitions[^1].DeviceName})",
         _ => "—",

@@ -38,6 +38,9 @@ public static class DiskImageBuilder
             case LayoutKind.Rdb:
                 ApplyRdb(device, plan, progress, cancellationToken);
                 break;
+            case LayoutKind.Emu68:
+                ApplyEmu68(device, plan, progress, cancellationToken);
+                break;
             default:
                 throw new InvalidOperationException("Image-restore plans are applied with DiskImager, not DiskImageBuilder.");
         }
@@ -63,6 +66,29 @@ public static class DiskImageBuilder
             ClusterBytes = plan.FatClusterBytes,
             HiddenSectors = plan.FatStartLba,
         }, ct);
+    }
+
+    private static void ApplyEmu68(IBlockDevice device, LayoutPlan plan, IProgress<string>? progress, CancellationToken ct)
+    {
+        progress?.Report("Writing MBR partition table (boot + Amiga 0x76)");
+        uint regionSectors = (uint)(plan.AmigaRegionBytes / plan.SectorSize);
+        var mbr = new MbrPartitionTable
+        {
+            DiskSignature = (uint)Random.Shared.NextInt64(1, uint.MaxValue),
+            Entries =
+            [
+                new MbrPartitionEntry(1, 0x00, MbrPartitionTypes.Fat32Lba, plan.FatStartLba, plan.FatSectorCount),
+                new MbrPartitionEntry(2, 0x00, MbrPartitionTypes.AmigaRdb, plan.AmigaStartLba, regionSectors),
+            ],
+        };
+        device.WriteSector(0, mbr.ToSector());
+
+        progress?.Report($"Creating FAT32 boot partition '{plan.FatLabel}'");
+        using (var boot = new SubBlockDevice(device, (long)plan.FatStartLba * plan.SectorSize, (long)plan.FatSectorCount * plan.SectorSize))
+            Fat32Formatter.Format(boot, new Fat32FormatOptions { Label = plan.FatLabel, ClusterBytes = plan.FatClusterBytes, HiddenSectors = plan.FatStartLba }, ct);
+
+        using var amiga = new SubBlockDevice(device, (long)plan.AmigaStartLba * plan.SectorSize, plan.AmigaRegionBytes);
+        ApplyRdb(amiga, plan, progress, ct);
     }
 
     private static void ApplyRdb(IBlockDevice device, LayoutPlan plan, IProgress<string>? progress, CancellationToken ct)

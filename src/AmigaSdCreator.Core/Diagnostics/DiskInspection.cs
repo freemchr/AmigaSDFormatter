@@ -146,6 +146,19 @@ public static class DiskInspector
                 {
                     long start = (long)e.FirstLba * device.SectorSize;
                     long len = (long)e.SectorCount * device.SectorSize;
+                    if (e.Type == MbrPartitionTypes.AmigaRdb && start + len <= device.Length)
+                    {
+                        // PiStorm/Emu68 style: an RDB inside an MBR partition. List its Amiga partitions.
+                        using var region = new SubBlockDevice(device, start, len);
+                        var inner = Inspect(region);
+                        problems.AddRange(inner.Problems.Select(p => $"0x76 partition: {p}"));
+                        if (inner.Partitions.Count == 0)
+                            partitions.Add(new InspectedPartition { Index = e.Index, Table = "MBR", Name = $"Partition {e.Index}", StartByte = start, LengthBytes = len,
+                                TypeDescription = e.TypeName, Filesystem = new FileSystems.FilesystemInfo { Kind = FileSystems.FilesystemKind.Unknown, Notes = ["No RDB inside this Amiga partition."] } });
+                        foreach (var ip in inner.Partitions)
+                            partitions.Add(ip with { Index = partitions.Count + 1, Table = "RDB in 0x76", StartByte = start + ip.StartByte });
+                        continue;
+                    }
                     partitions.Add(new InspectedPartition
                     {
                         Index = e.Index, Table = "MBR", Name = $"Partition {e.Index}",

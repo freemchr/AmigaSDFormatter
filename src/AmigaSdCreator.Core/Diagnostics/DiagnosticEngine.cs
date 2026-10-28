@@ -23,6 +23,7 @@ public static class DiagnosticEngine
         {
             use ??= iface.Uses.FirstOrDefault();
             if (iface.Status == VerificationStatus.Protected) AssessProtected(inspection, iface, f, r);
+            else if (iface.Layouts.Contains(LayoutKind.Emu68)) AssessEmu68(inspection, f, r);
             else if (iface.Layouts.Contains(LayoutKind.MbrFat32)) AssessDataCard(inspection, iface, f, r);
             else if (iface.Layouts.Contains(LayoutKind.Rdb)) AssessHardDrive(inspection, iface, use.Value, f, r);
             if (iface.Status == VerificationStatus.Experimental)
@@ -339,6 +340,23 @@ public static class DiagnosticEngine
         if (needsFormat) r.Add(new Recommendation("Format the unformatted partitions on the Amiga. No changes are needed from Windows.", RecommendedAction.FormatOnAmiga));
         if (problems) r.Add(prepare);
         if (!needsFormat && !problems) r.Add(new Recommendation("No change needed.", RecommendedAction.NoChangeNeeded));
+    }
+
+    private static void AssessEmu68(DiskInspection d, List<Finding> f, List<Recommendation> r)
+    {
+        var prepare = new Recommendation("Prepare the card as a PiStorm / Emu68 card: FAT32 boot partition plus an Amiga partition (type 0x76) with an RDB. This erases the card.", RecommendedAction.PrepareHardDriveCard);
+        bool boot = d.Scheme == PartitionScheme.Mbr && d.Partitions.FirstOrDefault()?.Filesystem.IsFat == true;
+        bool amiga = d.Partitions.Any(p => p.Table == "RDB in 0x76");
+        if (!boot)
+            f.Add(new Finding { Code = "emu68.no-boot", Severity = FindingSeverity.Problem, Confidence = Confidence.High,
+                Title = "No FAT boot partition first", Detail = "Emu68 boots from a FAT32 (or FAT16) partition holding its release files." });
+        if (!amiga)
+            f.Add(new Finding { Code = "emu68.no-amiga", Severity = FindingSeverity.Warning, Confidence = Confidence.Medium, ExplainsUninitialized = true,
+                Title = "No Amiga partition (type 0x76) with an RDB", Detail = "Without one, the card has no Amiga hard-drive storage under Emu68." });
+        if (boot && amiga)
+            f.Add(new Finding { Code = "emu68.ok", Severity = FindingSeverity.Ok, Confidence = Confidence.Medium, Title = "PiStorm / Emu68 layout found",
+                Detail = "Boot partition and Amiga partition present. The Emu68 files must be on the boot partition." });
+        else r.Add(prepare);
     }
 
     private static void AssessProtected(DiskInspection d, StorageInterfaceProfile iface, List<Finding> f, List<Recommendation> r)

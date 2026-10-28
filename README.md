@@ -3,7 +3,7 @@
 A Windows desktop utility that prepares, diagnoses, backs up and fills SD cards for Amiga computers, without needing HDToolBox on the Amiga.
 
 - **Apollo A6000**: FAT32 data-transfer cards for the SD slot, and Amiga hard-drive (RDB) cards.
-- **Classic Amigas** (A500, A600, A1200, A2000, A3000, A4000, any other RDB machine, WinUAE): SD/CF-to-IDE hard-drive cards laid out exactly like a real Amiga hard drive, with Kickstart-aware size limits. Also FAT32 transfer cards, and FAT32 USB sticks for Gotek/FlashFloppy.
+- **Classic Amigas** (A500, A600, A1200, A2000, A3000, A4000, any other RDB machine, WinUAE): SD/CF-to-IDE hard-drive cards laid out exactly like a real Amiga hard drive, with Kickstart-aware size limits. Also FAT32 transfer cards, FAT32 USB sticks for Gotek/FlashFloppy, and **PiStorm (Emu68)** SD cards (FAT32 boot partition + Amiga 0x76 partition with an RDB).
 - **Diagnose** an existing card without changing it, including likely reasons for an *"Uninitialized"* volume.
 - **Amiga Files**: drag and drop files between Windows and the FFS partitions on a card or image.
 - **Backup & Restore** whole cards, with SHA-256 checks and read-back verification.

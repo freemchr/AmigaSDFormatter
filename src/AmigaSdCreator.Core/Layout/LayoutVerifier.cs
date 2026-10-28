@@ -40,6 +40,26 @@ public static class LayoutVerifier
             }
             Check("No RDB signature", inspection.Rdb is null, inspection.Rdb is null ? "No RDSK block in the first 16 sectors." : "An RDSK block is present.");
         }
+        else if (plan.Kind == LayoutKind.Emu68)
+        {
+            var e = inspection.Mbr?.UsedEntries.ToList() ?? [];
+            Check("Partition table", inspection.Scheme == PartitionScheme.Mbr && e.Count == 2, $"Found {inspection.SchemeDescription} with {e.Count} partition(s).");
+            if (e.Count == 2)
+            {
+                Check("Boot partition", e[0].Type == MbrPartitionTypes.Fat32Lba && e[0].FirstLba == plan.FatStartLba && e[0].SectorCount == plan.FatSectorCount, e[0].TypeName);
+                Check("Amiga partition (0x76)", e[1].Type == MbrPartitionTypes.AmigaRdb && e[1].FirstLba == plan.AmigaStartLba, e[1].TypeName);
+            }
+            using (var boot = new SubBlockDevice(device, (long)plan.FatStartLba * plan.SectorSize, (long)plan.FatSectorCount * plan.SectorSize))
+            {
+                var fs = FilesystemProbe.Probe(boot);
+                Check("Boot filesystem", fs.Kind == FilesystemKind.Fat32 && fs.StructureValidated && fs.Label == Fat32Formatter.NormaliseLabel(plan.FatLabel), $"{fs.DisplayName} '{fs.Label}'");
+            }
+            using var amiga = new SubBlockDevice(device, (long)plan.AmigaStartLba * plan.SectorSize, plan.AmigaRegionBytes);
+            var inner = Verify(amiga, plan with { Kind = LayoutKind.Rdb, DeviceBytes = plan.AmigaRegionBytes });
+            checks.AddRange(inner.Checks.Select(c => c with { Name = "Amiga: " + c.Name }));
+            // The nested RDB is expected, so drop the "no unexpected structures" complaint about it.
+            checks.RemoveAll(c => c.Name == "No unexpected structures" && !c.Passed && inspection.Problems.Count == 0);
+        }
         else if (plan.Kind == LayoutKind.Rdb)
         {
             Check("Partition table", inspection.Scheme == PartitionScheme.Rdb && inspection.Rdb is not null, $"Found {inspection.SchemeDescription}.");

@@ -37,6 +37,11 @@ public static class LayoutValidator
         {
             case LayoutKind.MbrFat32: ValidateFat(plan, iface, m); break;
             case LayoutKind.Rdb: ValidateRdb(plan, iface, m); break;
+            case LayoutKind.Emu68:
+                ValidateFat(plan, iface, m);
+                if ((long)plan.FatStartLba + plan.FatSectorCount > plan.AmigaStartLba) m.Add(PlanMessage.Error("The boot partition overlaps the Amiga partition."));
+                ValidateRdb(plan, iface, m);
+                break;
             case LayoutKind.ImageRestore: break;
         }
         return m;
@@ -60,7 +65,7 @@ public static class LayoutValidator
             m.Add(PlanMessage.Error("The card is too small for FAT32 with this cluster size."));
         if ((long)plan.FatStartLba + plan.FatSectorCount > plan.DeviceBytes / plan.SectorSize)
             m.Add(PlanMessage.Error("The FAT32 partition extends beyond the end of the card."));
-        if (plan.UnallocatedBytes > 1024L * 1024 * 1024)
+        if (plan.Kind == LayoutKind.MbrFat32 && plan.UnallocatedBytes > 1024L * 1024 * 1024)
             m.Add(PlanMessage.Info($"{Format.Bytes(plan.UnallocatedBytes)} beyond the 2 TiB MBR limit will be unused."));
     }
 
