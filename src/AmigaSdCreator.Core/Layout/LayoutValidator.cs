@@ -23,9 +23,6 @@ public static class LayoutValidator
             case VerificationStatus.Protected when plan.Kind != LayoutKind.ImageRestore:
                 m.Add(PlanMessage.Error($"{iface.Name} holds the system installation; only backup and authorised image restore are allowed."));
                 break;
-            case VerificationStatus.Experimental:
-                m.Add(PlanMessage.Warn($"{iface.Name} is experimental: the layout follows Amiga standards but has not been confirmed on this hardware. See the unverified items in the profile."));
-                break;
         }
 
         if (plan.SectorSize > iface.Constraints.MaxSectorSize)

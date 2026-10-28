@@ -16,9 +16,7 @@
                     </StackPanel>
                     <TextBlock Text="{Binding Hardware.SelectedProfile.Summary}" Margin="0,0,0,8"/>
                     <TextBlock Margin="0,0,0,8">
-                        <Run Text="Status:" Foreground="{DynamicResource SubtleTextBrush}"/>
-                        <Run Text="{Binding Hardware.SelectedInterface.Status, Mode=OneWay, Converter={StaticResource StatusText}}" Foreground="{Binding Hardware.SelectedInterface.Status, Converter={StaticResource StatusBrush}}" FontWeight="SemiBold"/>
-                        <Run Text="  &#x2022;  Layouts:" Foreground="{DynamicResource SubtleTextBrush}"/>
+                        <Run Text="Layouts:" Foreground="{DynamicResource SubtleTextBrush}"/>
                         <Run Text="{Binding Hardware.SelectedInterface.Layouts[0], Mode=OneWay}"/>
                         <Run Text="  &#x2022;  Bootable:" Foreground="{DynamicResource SubtleTextBrush}"/>
                         <Run Text="{Binding Hardware.SelectedInterface.Bootable, Mode=OneWay}"/>

@@ -75,7 +75,6 @@ public sealed partial class PrepareViewModel : PageViewModel
     // Confirm
     [ObservableProperty] public partial string ConfirmText { get; set; } = "";
     [ObservableProperty] public partial bool UnderstandErase { get; set; }
-    [ObservableProperty] public partial bool AcceptExperimental { get; set; }
     public ObservableCollection<SafetyCheck> SafetyChecks { get; } = [];
 
     // Run / result
@@ -90,7 +89,6 @@ public sealed partial class PrepareViewModel : PageViewModel
     public bool IsFatPlan => Plan?.Kind == LayoutKind.MbrFat32;
     public bool IsRdbPlan => Plan?.Kind is LayoutKind.Rdb or LayoutKind.Emu68;
     public bool IsProtectedInterface => Hardware.SelectedInterface?.Status == VerificationStatus.Protected;
-    public bool IsExperimental => Hardware.SelectedInterface?.Status == VerificationStatus.Experimental;
     public bool NeedsElevation => !TargetIsImage && !_main.IsElevated;
     public bool HasErrors => LayoutValidator.HasErrors(Messages);
     public string TargetDescription => TargetIsImage
@@ -115,7 +113,7 @@ public sealed partial class PrepareViewModel : PageViewModel
     };
 
     private bool ConfirmReady =>
-        UnderstandErase && (!IsExperimental || AcceptExperimental) &&
+        UnderstandErase &&
         (TargetIsImage || string.Equals(ConfirmText.Trim(), SafetyPolicy.ConfirmationWord, StringComparison.Ordinal));
 
     /// <summary>Starts the wizard preset for an interface and use (from the dashboard or diagnostics).</summary>
@@ -153,7 +151,6 @@ public sealed partial class PrepareViewModel : PageViewModel
     partial void OnImageSizeTextChanged(string value) => Changed();
     partial void OnConfirmTextChanged(string value) => Changed();
     partial void OnUnderstandEraseChanged(bool value) => Changed();
-    partial void OnAcceptExperimentalChanged(bool value) => Changed();
     partial void OnFatLabelChanged(string value) => Rebuild();
     partial void OnFatClusterBytesChanged(int value) => Rebuild();
     partial void OnStepChanged(int value) => Changed();
@@ -166,7 +163,6 @@ public sealed partial class PrepareViewModel : PageViewModel
         OnPropertyChanged(nameof(DeviceBytes));
         OnPropertyChanged(nameof(TargetDescription));
         OnPropertyChanged(nameof(IsProtectedInterface));
-        OnPropertyChanged(nameof(IsExperimental));
     }
 
     [RelayCommand]
@@ -199,7 +195,6 @@ public sealed partial class PrepareViewModel : PageViewModel
             case StepPreview:
                 ConfirmText = "";
                 UnderstandErase = false;
-                AcceptExperimental = false;
                 Step = StepConfirm;
                 await PreflightAsync();
                 return;
@@ -228,7 +223,7 @@ public sealed partial class PrepareViewModel : PageViewModel
         Succeeded = null;
         ResultText = NextStepsText = InspectError = null;
         ConfirmText = "";
-        UnderstandErase = AcceptExperimental = false;
+        UnderstandErase = false;
     }
 
     [RelayCommand]

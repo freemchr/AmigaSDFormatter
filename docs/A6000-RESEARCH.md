@@ -20,7 +20,7 @@ Researched 2026-10-28. **The official A6000 manual** (`wiki.apollo-computer.com/
 ## What the app does with this
 
 - **File Transfer (Verified):** MBR, one FAT32 partition (type 0x0C, 1 MiB aligned), label `SD0`, at most 32 KiB clusters. A warning appears above 32 GB, since SDHC is the documented card type.
-- **Hard Drive (Experimental):** a standard RDB with FFS (DOS\3) partitions. These are conservative choices, confirmed as the defaults by the project owner on 2026-10-28 but not yet tested on an A6000:
+- **Hard Drive:** a standard RDB with FFS (DOS\3) partitions. These are conservative choices, confirmed as the defaults by the project owner on 2026-10-28 but not yet tested on an A6000:
   - 4 GiB cap per FFS partition (a warning, not an error) and MaxTransfer 0x1FE00.
   - Up to 8 partitions are created automatically; the summary shows any space left unused.
 - **CompactFlash (Protected):** backup and authorised image restore only.

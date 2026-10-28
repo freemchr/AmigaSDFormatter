@@ -39,7 +39,7 @@ public sealed partial class PrepareViewModel
 
     public string? ModelNote => HomeModel is null ? null
         : Presets.Count == 0 ? $"{HomeModel.Name} is not supported yet. {HomeModel.Summary}"
-        : HomeModel.Status == VerificationStatus.Verified ? null : HomeModel.Summary;
+        : null;
 
     partial void OnHomeModelChanged(HardwareProfile? value)
     {
@@ -219,7 +219,6 @@ public sealed partial class PrepareViewModel
         if (!CanQuickPrepare) return;
         ConfirmText = "";
         UnderstandErase = true; // the home screen asks only for the typed confirmation
-        AcceptExperimental = false;
         await InspectAsync();
         Step = StepConfirm;
         await PreflightAsync();

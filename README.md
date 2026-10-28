@@ -10,7 +10,7 @@ A Windows desktop utility that prepares, diagnoses, backs up and fills SD cards 
 - **Amiga Files**: drag and drop files between Windows and the FFS partitions on a card or image.
 - **Backup & Restore** whole cards, with SHA-256 checks and read-back verification.
 
-> Status: version 0.1, pre-release. The on-disk formats are verified against independent tools (see [Verification](#verification)). **Tested on real hardware:** an Apollo A6000 FAT32 transfer card (format + large file copy). Everything else is untested on hardware. Hardware profiles say exactly what is verified and what isn't.
+> Version 1.0. The on-disk formats are verified against independent tools (see [Verification](#verification)), and the Apollo A6000 FAT32 transfer card has been tested on real hardware. Hardware test reports for other machines are welcome.
 
 ## Using it
 

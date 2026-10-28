@@ -26,10 +26,6 @@ public static class DiagnosticEngine
             else if (iface.Layouts.Contains(LayoutKind.Emu68)) AssessEmu68(inspection, f, r);
             else if (iface.Layouts.Contains(LayoutKind.MbrFat32)) AssessDataCard(inspection, iface, f, r);
             else if (iface.Layouts.Contains(LayoutKind.Rdb)) AssessHardDrive(inspection, iface, use.Value, f, r);
-            if (iface.Status == VerificationStatus.Experimental)
-                f.Add(new Finding { Code = "profile.experimental", Severity = FindingSeverity.Info, Confidence = Confidence.High,
-                    Title = "Requirements for this slot are not fully verified",
-                    Detail = "Some requirements for this interface could not be confirmed from official documentation. Findings that depend on them have lower confidence." });
         }
 
         if (inspection.Partitions.Count > 0 || inspection.Scheme is PartitionScheme.Unknown)

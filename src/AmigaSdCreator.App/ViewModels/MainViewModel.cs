@@ -81,9 +81,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public static string StatusText(VerificationStatus s) => s switch
     {
-        VerificationStatus.Verified => "Verified",
-        VerificationStatus.Partial => "Partly verified",
-        VerificationStatus.Experimental => "Experimental",
+        VerificationStatus.Verified or VerificationStatus.Partial or VerificationStatus.Experimental => "",
         VerificationStatus.Planned => "Planned",
         VerificationStatus.Protected => "System drive",
         _ => s.ToString(),

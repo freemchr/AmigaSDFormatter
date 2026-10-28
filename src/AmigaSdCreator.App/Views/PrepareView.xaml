@@ -205,16 +205,6 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <StackPanel Visibility="{Binding IsExperimental, Converter={StaticResource VisibleWhen}}" Margin="0,0,0,8">
-                        <CheckBox IsChecked="{Binding AcceptExperimental}">
-                            <TextBlock Text="I understand this configuration is experimental: it follows Amiga standards but these points are not yet confirmed:"/>
-                        </CheckBox>
-                        <ItemsControl ItemsSource="{Binding Hardware.SelectedInterface.Unverified}" Margin="24,0,0,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate><TextBlock Text="{Binding StringFormat=&#x2022; {0}}" Style="{StaticResource Subtle}" FontSize="12"/></DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
                     <DockPanel>
                         <TextBlock Text="Type ERASE to confirm" VerticalAlignment="Center" Margin="0,0,10,0"/>
                         <TextBox Text="{Binding ConfirmText, UpdateSourceTrigger=PropertyChanged}" Width="110" FontFamily="{StaticResource MonoFont}"/>
@@ -628,9 +618,6 @@
                             </ItemsControl>
                             <CheckBox IsChecked="{Binding UnderstandErase}">
                                 <TextBlock Text="I understand that everything currently on this target will be permanently erased."/>
-                            </CheckBox>
-                            <CheckBox IsChecked="{Binding AcceptExperimental}" Visibility="{Binding IsExperimental, Converter={StaticResource VisibleWhen}}">
-                                <TextBlock Text="I understand this connection is experimental: the layout follows Amiga standards but has not been confirmed on this hardware."/>
                             </CheckBox>
                             <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Visibility="{Binding TargetIsImage, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
                                 <TextBlock Text="Type ERASE to confirm:" VerticalAlignment="Center" Margin="0,0,10,0"/>
