@@ -22,4 +22,5 @@
     <SolidColorBrush x:Key="SidebarTextBrush" Color="#C9D2DE"/>
     <SolidColorBrush x:Key="SidebarHoverBrush" Color="#1A212B"/>
     <SolidColorBrush x:Key="SidebarSelectedBrush" Color="#232D3A"/>
+    <BitmapImage x:Key="LogoImage" UriSource="pack://application:,,,/Assets/logo.png"/>
 </ResourceDictionary>

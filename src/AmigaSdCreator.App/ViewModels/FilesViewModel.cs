@@ -126,6 +126,12 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
         return list.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    /// <summary>Every status shown on the Files page is also logged, so problems can be diagnosed afterwards.</summary>
+    partial void OnStatusChanged(string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && !value.EndsWith("...", StringComparison.Ordinal)) AppServices.Current.Log.Info($"Files: {value}");
+    }
+
     partial void OnAmigaPathChanged(string value) => OnPropertyChanged(nameof(AmigaLocation));
 
     // ===== Windows pane ========================================================================
@@ -405,6 +411,7 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
 
     public async Task CopyToAmigaAsync(IReadOnlyList<string> windowsPaths)
     {
+        AppServices.Current.Log.Info($"Files: copy of {windowsPaths.Count} item(s) requested (open: {_session is not null}, writable: {IsWritable}).");
         if (_session is null || !IsWritable) { Status = "Open a partition (for Amiga partitions tick 'Allow changes') to copy files onto it."; return; }
         var target = AmigaPath;
         string where = AmigaLocation;

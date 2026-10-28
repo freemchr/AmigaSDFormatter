@@ -36,7 +36,7 @@
                         Visibility="{Binding IsHome, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" Margin="-8,0,8,0" ToolTip="Back">
                     <TextBlock Text="&#xE72B;" Style="{StaticResource Icon}" FontSize="16"/>
                 </Button>
-                <Image Source="Assets/logo.png" Height="54" HorizontalAlignment="Left" VerticalAlignment="Center"
+                <Image Source="{DynamicResource LogoImage}" Height="54" HorizontalAlignment="Left" VerticalAlignment="Center"
                        RenderOptions.BitmapScalingMode="HighQuality" ToolTip="Amiga SD Creator - prepare Amiga-compatible storage from Windows"
                        AutomationProperties.Name="Amiga SD Creator"/>
             </DockPanel>
