@@ -70,6 +70,12 @@
       "url": "https://www.retrosix.wiki/pistorm-emu68-format-drives-amiga",
       "retrieved": "2026-10-28",
       "note": "Article body requires login; facts taken from search-engine excerpts."
+    },
+    {
+      "id": "framethrower-wiki",
+      "title": "AusVantage wiki: Framethrower",
+      "url": "https://www.ausvantage.online/wiki/framethrower.html",
+      "retrieved": "2026-10-28"
     }
   ],
   "profiles": [
@@ -1055,7 +1061,8 @@
             "That each 0x76 partition is presented by Emu68 as its own unit containing a standard RDB (this tool writes one RDB inside the 0x76 partition).",
             "Boot partition size: 256 MB is created; Emu68 itself needs far less.",
             "Not tested on PiStorm hardware; structures are validated with amitools.",
-            "The app downloads the latest Emu68 release from GitHub and installs it on the boot partition. Without a Kickstart ROM file, the config.txt 'initramfs kick.rom' line is disabled so the Amiga's own ROM is used; confirm this boots on your PiStorm."
+            "The app downloads the latest Emu68 release from GitHub and installs it on the boot partition. Without a Kickstart ROM file, the config.txt 'initramfs kick.rom' line is disabled so the Amiga's own ROM is used; confirm this boots on your PiStorm.",
+            "Framethrower (optional): sets hdmi_group=1, hdmi_mode=19 (720p50) or 31 (1080p50), disable_overscan=1 and writes the unicam options to cmdline.txt, as given by the Framethrower wiki. Needs Emu68 1.0.5 or later. Not tested on Framethrower hardware."
           ]
         }
       ]

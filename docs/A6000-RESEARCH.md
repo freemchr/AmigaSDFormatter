@@ -20,7 +20,7 @@ Researched 2026-10-28. **The official A6000 manual** (`wiki.apollo-computer.com/
 ## What the app does with this
 
 - **File Transfer (Verified):** MBR, one FAT32 partition (type 0x0C, 1 MiB aligned), label `SD0`, at most 32 KiB clusters. A warning appears above 32 GB, since SDHC is the documented card type.
-- **Hard Drive (Experimental):** a standard RDB with FFS (DOS\3) partitions. These are conservative choices, marked unverified:
+- **Hard Drive (Experimental):** a standard RDB with FFS (DOS\3) partitions. These are conservative choices, confirmed as the defaults by the project owner on 2026-10-28 but not yet tested on an A6000:
   - 4 GiB cap per FFS partition (a warning, not an error) and MaxTransfer 0x1FE00.
   - Up to 8 partitions are created automatically; the summary shows any space left unused.
 - **CompactFlash (Protected):** backup and authorised image restore only.
@@ -40,7 +40,7 @@ In order of likelihood. The Diagnose page checks each one:
 1. Which physical slot is the RDB/boot slot, and which is the floppy-image slot?
 2. Does ApolloOS auto-mount RDB partitions from an SD slot, or is SDMount or a mountlist required?
 3. Are PFS3 and/or SFS handlers included in ApolloOS?
-4. What is the largest FFS partition ApolloOS handles reliably on `sagasd.device`? (Currently capped at 4 GiB.)
+4. What is the largest FFS partition ApolloOS handles reliably on `sagasd.device`? (Capped at 4 GiB by default, as decided on 2026-10-28; raise it only after testing.)
 5. What is the correct MaxTransfer for `sagasd.device`?
 6. Is the `SD0` volume label actually required, or only recommended?
 7. Does a superfloppy (no MBR) FAT32 card mount?

@@ -8,6 +8,29 @@ namespace AmigaSdCreator.Core.Imaging;
 public sealed record Emu68Release(string Tag, string AssetName, string DownloadUrl);
 
 /// <summary>
+/// Video settings for a Framethrower (Denise-socket board that feeds native video to the PiStorm camera
+/// connector; needs Emu68 1.0.5 or later). Values from the Framethrower wiki
+/// (ausvantage.online/wiki/framethrower.html). <see cref="CmdLine"/> null means no Framethrower.
+/// </summary>
+public sealed record FramethrowerPreset(string Name, string? CmdLine, int HdmiMode)
+{
+    private const string Integer = "unicam.boot unicam.integer";
+    private const string Smooth = "unicam.boot unicam.smooth unicam.b=20 unicam.c=0 unicam.phase=60";
+
+    public static readonly FramethrowerPreset None = new("Not fitted", null, 0);
+    public static readonly IReadOnlyList<FramethrowerPreset> All =
+    [
+        None,
+        new("Pixel-perfect, 720p 50 Hz", Integer, 19),
+        new("Pixel-perfect, 1080p 50 Hz", Integer, 31),
+        new("Smooth 4:3, 720p 50 Hz", Smooth, 19),
+        new("Smooth 4:3, 1080p 50 Hz", Smooth, 31),
+    ];
+
+    public override string ToString() => Name;
+}
+
+/// <summary>
 /// Downloads the latest Emu68 release (MPL-2.0, github.com/michalsc/Emu68) and installs it onto a
 /// PiStorm boot partition. Nothing is bundled with this app; downloads are cached per version.
 /// </summary>
@@ -53,9 +76,10 @@ public sealed class Emu68Installer(string cacheDirectory)
     /// <summary>
     /// Extracts the release into <paramref name="bootRoot"/> (the mounted FAT32 boot partition). With a
     /// Kickstart ROM it is copied as kick.rom; without one the config.txt "initramfs" line is disabled.
-    /// Returns the files written.
+    /// With a Framethrower preset, the HDMI mode is set to CEA 50 Hz and the unicam options are added to
+    /// cmdline.txt. Returns the files written.
     /// </summary>
-    public static IReadOnlyList<string> Install(string zipPath, string bootRoot, string? kickstartRom)
+    public static IReadOnlyList<string> Install(string zipPath, string bootRoot, string? kickstartRom, FramethrowerPreset? framethrower = null)
     {
         var written = new List<string>();
         using (var zip = ZipFile.OpenRead(zipPath))
@@ -79,14 +103,53 @@ public sealed class Emu68Installer(string cacheDirectory)
             text = kickstartRom is null
                 ? System.Text.RegularExpressions.Regex.Replace(text, @"(?m)^initramfs kick\.rom(?=\r?$)", "# initramfs kick.rom   (disabled by Amiga SD Creator: no Kickstart ROM file was supplied)")
                 : text;
+            if (framethrower?.CmdLine is not null)
+            {
+                text = SetConfigValue(text, "hdmi_group", "1");
+                text = SetConfigValue(text, "hdmi_mode", framethrower.HdmiMode.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                text = SetConfigValue(text, "disable_overscan", "1");
+            }
             File.WriteAllText(config, text, new UTF8Encoding(false));
         }
+        if (framethrower?.CmdLine is not null && WriteCmdLine(bootRoot, framethrower.CmdLine) is var cmd && !written.Contains(cmd))
+            written.Add(cmd);
         if (kickstartRom is not null)
         {
             File.Copy(kickstartRom, Path.Combine(bootRoot, "kick.rom"), overwrite: true);
             written.Add("kick.rom");
         }
         return written;
+    }
+
+    /// <summary>Replaces the first active "key=value" line, or appends one.</summary>
+    internal static string SetConfigValue(string text, string key, string value)
+    {
+        var re = new System.Text.RegularExpressions.Regex($@"(?m)^{System.Text.RegularExpressions.Regex.Escape(key)}=[^\r\n]*");
+        if (re.IsMatch(text)) return re.Replace(text, $"{key}={value}", 1);
+        string nl = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        return text + (text.Length == 0 || text.EndsWith('\n') ? "" : nl) + $"{key}={value}{nl}";
+    }
+
+    /// <summary>
+    /// Adds the Framethrower options to cmdline.txt (or the file named by a config.txt "cmdline=" line),
+    /// replacing any earlier unicam options. Emu68 reads it as one line. Returns the file written.
+    /// </summary>
+    private static string WriteCmdLine(string bootRoot, string options)
+    {
+        string name = "cmdline.txt";
+        string config = Path.Combine(bootRoot, "config.txt");
+        if (File.Exists(config) && System.Text.RegularExpressions.Regex.Match(File.ReadAllText(config), @"(?m)^cmdline=\s*(\S+)") is { Success: true } m)
+            name = m.Groups[1].Value.TrimStart('/', '\\');
+        string path = Path.GetFullPath(Path.Combine(bootRoot, name));
+        if (!path.StartsWith(Path.GetFullPath(bootRoot), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"Unsafe cmdline path in config.txt: {name}");
+        var tokens = File.Exists(path)
+            ? File.ReadAllText(path).Split((char[])[' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries).Where(t => !t.StartsWith("unicam.", StringComparison.Ordinal)).ToList()
+            : [];
+        tokens.AddRange(options.Split(' '));
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, string.Join(' ', tokens) + "\n", new UTF8Encoding(false));
+        return name;
     }
 
     private static bool IsValidZip(string path)

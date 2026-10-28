@@ -155,6 +155,8 @@ public sealed partial class PrepareViewModel
     [ObservableProperty] public partial bool InstallEmu68 { get; set; } = true;
     [ObservableProperty] public partial string Emu68Variant { get; set; } = "PiStorm";
     [ObservableProperty] public partial string? KickstartRomPath { get; set; }
+    public IReadOnlyList<Core.Imaging.FramethrowerPreset> FramethrowerPresets => Core.Imaging.FramethrowerPreset.All;
+    [ObservableProperty] public partial Core.Imaging.FramethrowerPreset Framethrower { get; set; } = Core.Imaging.FramethrowerPreset.None;
     public string KickstartRomText => KickstartRomPath is null ? "None (use the Amiga's own Kickstart)" : System.IO.Path.GetFileName(KickstartRomPath);
     partial void OnKickstartRomPathChanged(string? value) => OnPropertyChanged(nameof(KickstartRomText));
 
@@ -194,8 +196,9 @@ public sealed partial class PrepareViewModel
 
             progress.Report($"Copying Emu68 {release.Tag} to {root}");
             var rom = KickstartRomPath;
-            var files = await Task.Run(() => Core.Imaging.Emu68Installer.Install(zip, root, rom));
-            Checks.Add(new VerificationCheck("Emu68 installed", true, $"{release.Tag} ({release.AssetName}): {files.Count} files on {root}{(rom is null ? "; no Kickstart ROM (the Amiga's own ROM is used)" : "; kick.rom copied")}."));
+            var ft = Framethrower;
+            var files = await Task.Run(() => Core.Imaging.Emu68Installer.Install(zip, root, rom, ft));
+            Checks.Add(new VerificationCheck("Emu68 installed", true, $"{release.Tag} ({release.AssetName}): {files.Count} files on {root}{(rom is null ? "; no Kickstart ROM (the Amiga's own ROM is used)" : "; kick.rom copied")}{(ft.CmdLine is null ? "" : $"; Framethrower {ft.Name}")}."));
             ResultText += $" Emu68 {release.Tag} was downloaded and installed on the boot partition.";
             NextStepsText = NextStepsText?.Replace("Copy the files from an Emu68 release (and your Kickstart ROM, if your config uses one) onto", "Emu68 is installed on") ;
         }

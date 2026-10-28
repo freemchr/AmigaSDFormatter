@@ -114,6 +114,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <TextBlock Text="Partition scheme"/>
                         <TextBlock Grid.Column="1" Text="{Binding SchemeText}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
@@ -141,6 +142,11 @@
                             <Button Content="Clear" Command="{Binding ClearKickstartRomCommand}" Padding="8,2" Margin="6,0,0,0"
                                     Visibility="{Binding KickstartRomPath, Converter={StaticResource VisibleWhen}}"/>
                         </StackPanel>
+                        <TextBlock Grid.Row="8" Text="Framethrower" Visibility="{Binding IsEmu68Plan, Converter={StaticResource VisibleWhen}}"
+                                   ToolTip="Framethrower video board (Denise socket): sets a 50 Hz HDMI mode and the Emu68 unicam options"/>
+                        <ComboBox Grid.Row="8" Grid.Column="1" ItemsSource="{Binding FramethrowerPresets}" SelectedItem="{Binding Framethrower}"
+                                  Width="230" HorizontalAlignment="Right" Margin="0,3" IsEnabled="{Binding InstallEmu68}"
+                                  Visibility="{Binding IsEmu68Plan, Converter={StaticResource VisibleWhen}}"/>
                         <TextBlock Grid.Row="5" Text="Unused space" Foreground="{DynamicResource WarnBrush}" Visibility="{Binding HasUnused, Converter={StaticResource VisibleWhen}}"/>
                         <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding UnusedText}" Foreground="{DynamicResource WarnBrush}" FontWeight="SemiBold" HorizontalAlignment="Right"
                                    Visibility="{Binding HasUnused, Converter={StaticResource VisibleWhen}}"/>

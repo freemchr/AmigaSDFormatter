@@ -65,6 +65,38 @@ public class Emu68Tests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void Installer_Framethrower_SetsCeaHdmiMode_AndWritesCmdLine()
+    {
+        const string config = "kernel=Emu68-pistorm\r\n#hdmi_group=2\r\nhdmi_group=2\r\nhdmi_mode=82\r\n#hdmi_mode=87\r\ninitramfs kick.rom\r\n";
+        var zip = MakeZip(("config.txt", config), ("Emu68-pistorm", "kernel"));
+        var preset = Imaging.FramethrowerPreset.All.Single(x => x.Name == "Smooth 4:3, 1080p 50 Hz");
+
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        var files = Imaging.Emu68Installer.Install(zip, dir, null, preset);
+        Assert.Contains("cmdline.txt", files);
+        var text = File.ReadAllText(Path.Combine(dir, "config.txt"));
+        Assert.Contains("\r\nhdmi_group=1\r\nhdmi_mode=31\r\n", text);
+        Assert.Contains("#hdmi_group=2\r\n", text);
+        Assert.Contains("#hdmi_mode=87\r\n", text);
+        Assert.EndsWith("disable_overscan=1\r\n", text);
+        Assert.Equal("unicam.boot unicam.smooth unicam.b=20 unicam.c=0 unicam.phase=60\n", File.ReadAllText(Path.Combine(dir, "cmdline.txt")));
+
+        // An existing cmdline (named by config.txt) keeps its other options; earlier unicam options are replaced.
+        var zip2 = MakeZip(("config.txt", "kernel=Emu68-pistorm\ncmdline=emu68/cmd.txt\n"), ("emu68/cmd.txt", "enable_cache unicam.smooth\nunicam.b=5"));
+        var dir2 = Directory.CreateTempSubdirectory().FullName;
+        Imaging.Emu68Installer.Install(zip2, dir2, null, Imaging.FramethrowerPreset.All.Single(x => x.Name == "Pixel-perfect, 720p 50 Hz"));
+        Assert.Equal("enable_cache unicam.boot unicam.integer\n", File.ReadAllText(Path.Combine(dir2, "emu68", "cmd.txt")));
+        Assert.False(File.Exists(Path.Combine(dir2, "cmdline.txt")));
+        Assert.EndsWith("hdmi_group=1\nhdmi_mode=19\ndisable_overscan=1\n", File.ReadAllText(Path.Combine(dir2, "config.txt")));
+
+        // Not fitted: nothing video-related changes.
+        var dir3 = Directory.CreateTempSubdirectory().FullName;
+        Imaging.Emu68Installer.Install(zip, dir3, null, Imaging.FramethrowerPreset.None);
+        Assert.Contains("hdmi_mode=82", File.ReadAllText(Path.Combine(dir3, "config.txt")));
+        Assert.False(File.Exists(Path.Combine(dir3, "cmdline.txt")));
+    }
+
+    [Fact]
     public void Installer_RejectsPathTraversal()
     {
         var zip = MakeZip(("../evil.txt", "x"));
@@ -83,6 +115,14 @@ public class Emu68Tests(ITestOutputHelper output)
         Assert.Contains("config.txt", files);
         Assert.Contains(files, f => f.StartsWith("Emu68-", StringComparison.Ordinal));
         Assert.Matches(@"(?m)^# initramfs kick\.rom", File.ReadAllText(Path.Combine(dir, "config.txt")));
+
+        var ft = Directory.CreateTempSubdirectory().FullName;
+        Imaging.Emu68Installer.Install(real, ft, null, Imaging.FramethrowerPreset.All[1]);
+        var cfg = File.ReadAllText(Path.Combine(ft, "config.txt"));
+        Assert.Matches(@"(?m)^hdmi_group=1\r?$", cfg);
+        Assert.Matches(@"(?m)^hdmi_mode=19\r?$", cfg);
+        Assert.DoesNotMatch(@"(?m)^hdmi_mode=82", cfg);
+        Assert.True(File.Exists(Path.Combine(ft, "cmdline.txt")));
     }
 
     [Fact]
