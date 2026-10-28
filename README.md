@@ -1,3 +1,5 @@
+<p align="center"><img src="src/AmigaSdCreator.App/Assets/logo.png" alt="Amiga SD Creator" width="480"></p>
+
 # Amiga SD Creator
 
 A Windows desktop utility that prepares, diagnoses, backs up and fills SD cards for Amiga computers, without needing HDToolBox on the Amiga.
