@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AmigaSdCreator.Ui.ViewModels"
+             x:Class="AmigaSdCreator.Desktop.Views.BackupRestoreView"
+             x:DataType="vm:BackupRestoreViewModel">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="20,16" MaxWidth="1000" HorizontalAlignment="Left">
+            <TextBlock Text="Backup &amp; Restore" Classes="H1"/>
+            <TextBlock Classes="Subtle" Margin="0,0,0,16"
+                       Text="Full-card images with SHA-256 checksums. Backups are re-read and checked after writing; restores are verified by reading the card back."/>
+
+            <Border Classes="Callout" IsVisible="{Binding NeedsElevation}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="{Binding Main.RestartElevatedText}" Command="{Binding Main.RestartElevatedCommand}" Margin="8,0,0,0"/>
+                    <TextBlock Text="Reading or writing cards requires root (administrator) rights." VerticalAlignment="Center"/>
+                </DockPanel>
+            </Border>
+
+            <Grid ColumnDefinitions="*,16,*">
+                <Border Classes="Card">
+                    <StackPanel>
+                        <TextBlock Text="Back up a card" Classes="H2"/>
+                        <ListBox ItemsSource="{Binding Devices.Cards}" SelectedItem="{Binding SelectedSource}" ItemTemplate="{StaticResource DeviceTemplate}" Height="150"/>
+                        <CheckBox Content="Compress (gzip) - smaller files, slower" IsChecked="{Binding Compress}" Margin="0,10,0,10"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Back up..." Classes="Primary" Command="{Binding BackupCommand}" IsEnabled="{Binding !IsRunning}"/>
+                            <Button Content="Refresh" Command="{Binding Devices.RefreshCommand}"/>
+                        </StackPanel>
+                        <TextBlock Classes="Subtle" FontSize="12" Margin="0,10,0,0" Text="Backing up only reads the card. It is safe for any card, including the ApolloOS CompactFlash card."/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Classes="Card">
+                    <StackPanel>
+                        <TextBlock Text="Restore an image to a card" Classes="H2"/>
+                        <DockPanel Margin="0,0,0,6">
+                            <Button DockPanel.Dock="Right" Content="Choose image..." Command="{Binding ChooseRestoreImageCommand}" Margin="6,0,0,0" IsEnabled="{Binding !IsRunning}"/>
+                            <TextBox Text="{Binding RestoreImagePath}" IsReadOnly="True"/>
+                        </DockPanel>
+                        <TextBlock Text="{Binding RestoreImageContents}" Classes="Subtle" FontSize="12" Margin="0,0,0,8" IsVisible="{Binding RestoreImageContents, Converter={StaticResource VisibleWhen}}"/>
+                        <TextBlock Text="Target card" Classes="Subtle"/>
+                        <ListBox ItemsSource="{Binding Devices.Cards}" SelectedItem="{Binding SelectedTarget}" ItemTemplate="{StaticResource DeviceTemplate}" Height="110"/>
+                        <Border Classes="Callout" BorderBrush="{DynamicResource DangerBrush}" Margin="0,10,0,10" IsVisible="{Binding RestoreSummary, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock Text="{Binding RestoreSummary}" FontWeight="SemiBold"/>
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock Text="Type ERASE:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox Text="{Binding ConfirmText}" Width="110" FontFamily="{DynamicResource MonoFont}" Margin="0,0,10,0"/>
+                            <Button Content="Restore" Classes="Danger" Command="{Binding RestoreCommand}" IsEnabled="{Binding CanRestore}"/>
+                        </StackPanel>
+                        <TextBlock Classes="Subtle" FontSize="12" Margin="0,10,0,0"
+                                   Text="Only restore operating system images you are licensed to use (for example the ApolloOS image published by Apollo). The image is checked against its manifest before anything is written."/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Classes="Card" IsVisible="{Binding IsRunning}">
+                <StackPanel>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Cancel" Command="{Binding CancelCommand}" Margin="0"/>
+                        <TextBlock Text="{Binding Stage}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <ProgressBar Value="{Binding ProgressPercent}" Maximum="100" Margin="0,10,0,6"/>
+                    <TextBlock Text="{Binding ProgressDetail}" Classes="Subtle"/>
+                </StackPanel>
+            </Border>
+            <Border Classes="Card" BorderThickness="2" BorderBrush="{Binding LastSucceeded, Converter={StaticResource StatusBrush}}"
+                    IsVisible="{Binding Message, Converter={StaticResource VisibleWhen}}">
+                <TextBlock>
+                    <Run Text="{Binding LastSucceeded, Mode=OneWay, Converter={StaticResource Glyph}}" Foreground="{Binding LastSucceeded, Converter={StaticResource StatusBrush}}"/>
+                    <Run Text="{Binding Message, Mode=OneWay}"/>
+                </TextBlock>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -2,7 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using AmigaSdCreator.App.ViewModels;
+using AmigaSdCreator.Ui.ViewModels;
 using AmigaSdCreator.Core.FileSystems;
 
 namespace AmigaSdCreator.App.Views;

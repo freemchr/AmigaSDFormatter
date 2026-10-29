@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Amiga SD Creator
+GenericName=Amiga SD Card Creator
+Comment=Prepare, diagnose, back up and fill SD cards for Amiga computers
+Exec=amiga-sd-creator
+Icon=amiga-sd-creator
+Terminal=false
+Categories=Utility;System;Emulator;
+Keywords=Amiga;SD;RDB;FFS;PiStorm;Emu68;Apollo;A6000;Gotek;
+StartupWMClass=amiga-sd-creator

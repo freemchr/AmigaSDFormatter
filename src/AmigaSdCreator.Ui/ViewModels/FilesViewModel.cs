@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using AmigaSdCreator.App.Services;
+using AmigaSdCreator.Ui.Services;
 using AmigaSdCreator.Core.Diagnostics;
 using AmigaSdCreator.Core.FileSystems;
 using AmigaSdCreator.Core.IO;
@@ -9,7 +9,7 @@ using AmigaSdCreator.Core.Safety;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace AmigaSdCreator.App.ViewModels;
+namespace AmigaSdCreator.Ui.ViewModels;
 
 public sealed record WindowsEntry(string Name, string FullPath, bool IsDirectory, long Size, DateTime Modified, bool IsDrive = false)
 {
@@ -38,7 +38,7 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
 
     // ----- Windows pane -----
     public ObservableCollection<WindowsEntry> WindowsEntries { get; } = [];
-    [ObservableProperty] public partial string WindowsPath { get; set; } = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+    [ObservableProperty] public partial string WindowsPath { get; set; } = AppServices.Platform.DefaultBrowseFolder;
 
     // ----- Amiga pane -----
     [ObservableProperty] public partial bool SourceIsImage { get; set; }
@@ -62,7 +62,7 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
 
     public string AmigaLocation => SelectedPartition is null ? "" : $"{SelectedPartition.Name}:{AmigaPath}";
 
-    /// <summary>Drives for the left-pane drop-down, including mapped network drives.</summary>
+    /// <summary>Drives and places for the left-pane drop-down, including mapped network drives.</summary>
     public ObservableCollection<WindowsEntry> Drives { get; } = [];
     [ObservableProperty] public partial WindowsEntry? SelectedDrive { get; set; }
 
@@ -84,7 +84,7 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
 
     partial void OnSelectedDriveChanged(WindowsEntry? value)
     {
-        if (value is not null && !WindowsPath.StartsWith(value.FullPath, StringComparison.OrdinalIgnoreCase)) LoadWindows(value.FullPath);
+        if (value is not null && !IsUnder(WindowsPath, value.FullPath)) LoadWindows(value.FullPath);
     }
 
     [RelayCommand]
@@ -94,37 +94,14 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
         foreach (var d in ListDrives()) Drives.Add(d);
     }
 
-    /// <summary>
-    /// Local and mapped drives. A program running as administrator does not see drive letters mapped in
-    /// the user's normal (non-elevated) logon session, so persistent mappings are also read from
-    /// HKCU\Network and opened by their UNC path.
-    /// </summary>
-    private static List<WindowsEntry> ListDrives()
-    {
-        var list = new List<WindowsEntry>();
-        foreach (var d in DriveInfo.GetDrives())
-        {
-            string label = "";
-            try { if (d.DriveType != DriveType.Network && d.IsReady) label = d.VolumeLabel; }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-            string kind = d.DriveType switch { DriveType.Network => "network", DriveType.Removable => "removable", DriveType.CDRom => "CD/DVD", _ => "" };
-            list.Add(new WindowsEntry($"{d.Name.TrimEnd('\\')} {label} {(kind.Length > 0 ? $"({kind})" : "")}".Replace("  ", " ").Trim(), d.RootDirectory.FullName, true, 0, DateTime.MinValue, IsDrive: true));
-        }
-        try
-        {
-            using var network = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Network");
-            foreach (var letter in network?.GetSubKeyNames() ?? [])
-            {
-                if (letter.Length != 1 || list.Any(x => x.FullPath.StartsWith(letter + ":", StringComparison.OrdinalIgnoreCase))) continue;
-                using var key = network!.OpenSubKey(letter);
-                if (key?.GetValue("RemotePath") is string unc && unc.StartsWith(@"\\", StringComparison.Ordinal))
-                    list.Add(new WindowsEntry($"{letter.ToUpperInvariant()}: {unc} (network)", unc, true, 0, DateTime.MinValue, IsDrive: true));
-            }
-        }
-        catch (System.Security.SecurityException) { }
-        return list.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToList();
-    }
+    private static List<WindowsEntry> ListDrives() =>
+        AppServices.Platform.ListPlaces().Select(p => new WindowsEntry(p.Name, p.Path, true, 0, DateTime.MinValue, IsDrive: true)).ToList();
+
+    private static StringComparison PathComparison => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+    private static bool IsUnder(string path, string root) =>
+        path.StartsWith(root, PathComparison) &&
+        (path.Length == root.Length || root.EndsWith(Path.DirectorySeparatorChar) || path[root.Length] == Path.DirectorySeparatorChar);
 
     /// <summary>Every status shown on the Files page is also logged, so problems can be diagnosed afterwards.</summary>
     partial void OnStatusChanged(string? value)
@@ -154,7 +131,7 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
             foreach (var f in dir.EnumerateFiles().Where(Visible).OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
                 WindowsEntries.Add(new WindowsEntry(f.Name, f.FullName, false, f.Length, f.LastWriteTime));
             WindowsPath = dir.FullName;
-            var drive = Drives.Where(d => WindowsPath.StartsWith(d.FullPath, StringComparison.OrdinalIgnoreCase)).MaxBy(d => d.FullPath.Length);
+            var drive = Drives.Where(d => IsUnder(WindowsPath, d.FullPath)).MaxBy(d => d.FullPath.Length);
             if (drive is not null && SelectedDrive != drive) SelectedDrive = drive;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
@@ -173,9 +150,9 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
     }
 
     [RelayCommand]
-    private void BrowseWindowsFolder()
+    private async Task BrowseWindowsFolderAsync()
     {
-        var f = Dialogs.PickFolder("Choose a Windows folder");
+        var f = await Dialogs.PickFolder("Choose a folder on this computer");
         if (f is not null) LoadWindows(f);
     }
 
@@ -187,9 +164,9 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
     // ===== Amiga source ========================================================================
 
     [RelayCommand]
-    private void BrowseImage()
+    private async Task BrowseImageAsync()
     {
-        var p = Dialogs.OpenFile(Dialogs.ImageFilter.Replace(";*.img.gz", "").Replace(";*.gz", ""), "Open an Amiga disk image");
+        var p = await Dialogs.OpenFile(Dialogs.ImageFilter.Replace(";*.img.gz", "").Replace(";*.gz", ""), "Open an Amiga disk image");
         if (p is null) return;
         ImagePath = p;
         SourceIsImage = true;
@@ -202,7 +179,7 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
         PartitionChoices.Clear();
         if (!SourceIsImage && SelectedDevice is null) { Status = "Choose a card or an image file."; return; }
         if (SourceIsImage && string.IsNullOrEmpty(ImagePath)) { Status = "Choose an image file."; return; }
-        if (!SourceIsImage && !main.IsElevated) { Status = "Reading a card directly requires administrator rights. Use 'Restart as administrator'."; return; }
+        if (!SourceIsImage && !main.IsElevated) { Status = $"Reading a card directly requires {AppServices.Platform.AdminRightsText}. Use '{AppServices.Platform.RestartElevatedText}'."; return; }
 
         await Work("Reading partition table", async () =>
         {
@@ -219,14 +196,14 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
             {
                 if (p.Filesystem.IsFat)
                 {
-                    // FAT partitions are used through the drive letter Windows assigned to them.
-                    var letters = disk?.DriveLetters ?? [];
-                    string? root = !isImage && fatIndex < letters.Count ? $"{letters[fatIndex]}:\\" : null;
+                    // FAT partitions are used through the drive letter or mount point the OS assigned to them.
+                    var mounts = disk?.MountPoints ?? [];
+                    string? root = !isImage && fatIndex < mounts.Count ? mounts[fatIndex] : null;
                     fatIndex++;
                     string label = p.Filesystem.Label ?? "FAT";
-                    string? why = isImage ? "FAT image files are not supported" : root is null ? "not mounted by Windows - remove and reinsert the card" : null;
+                    string? why = isImage ? "FAT image files are not supported" : root is null ? $"not mounted by {AppServices.Platform.OsName} - remove and reinsert the card" : null;
                     PartitionChoices.Add(new AmigaPartitionChoice(label,
-                        $"{label} - {Format.Bytes(p.LengthBytes)} {p.Filesystem.DisplayName}{(root is null ? $" ({why})" : $" (drive {root.TrimEnd('\\')})")}",
+                        $"{label} - {Format.Bytes(p.LengthBytes)} {p.Filesystem.DisplayName}{(root is null ? $" ({why})" : $" ({(OperatingSystem.IsWindows() ? "drive " + root.TrimEnd('\\') : root)})")}",
                         p.StartByte, p.LengthBytes, root is not null, why, root));
                     continue;
                 }
@@ -256,10 +233,10 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
     {
         await CloseAsync();
         if (SelectedPartition is not { Supported: true } part) { Status = SelectedPartition?.Reason; return; }
-        // A Windows-mounted FAT card is ordinary file copying (as in Explorer), so it is always writable.
+        // An OS-mounted FAT card is ordinary file copying (as in Explorer), so it is always writable.
         bool writable = AllowChanges || part.DriveRoot is not null;
         if (writable && !SourceIsImage && part.DriveRoot is null &&
-            !Dialogs.Confirm($"Allow Amiga SD Creator to change files on {part.Name}: on {SelectedDevice!.Title}?\n\nThis does not erase the card, but changes are written directly to it. Keep a backup of anything important."))
+            !await Dialogs.Confirm($"Allow Amiga SD Creator to change files on {part.Name}: on {SelectedDevice!.Title}?\n\nThis does not erase the card, but changes are written directly to it. Keep a backup of anything important."))
             return;
 
         await Work("Opening volume", async () =>
@@ -464,8 +441,8 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
     {
         if (_session is null) return;
         string folder = windowsFolder ?? WindowsPath;
-        if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) { Status = "Choose a Windows folder on the left first."; return; }
-        await Work("Copying to Windows", async () =>
+        if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) { Status = "Choose a folder on the left first."; return; }
+        await Work("Copying to this computer", async () =>
         {
             var (ok, skipped, cancelled) = await RunCopy(() => entries.Count, job =>
             {
@@ -481,13 +458,14 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
         job.Ct.ThrowIfCancellationRequested();
         var vol = _session!.Volume;
         string safe = WindowsSafeName(e.Name);
-        if (safe != e.Name) AddLog($"Renamed '{e.Name}' to '{safe}' (characters not allowed on Windows).");
+        if (safe != e.Name) AddLog($"Renamed '{e.Name}' to '{safe}' (characters not allowed on {AppServices.Platform.OsName}).");
         string dest = Path.Combine(folder, safe);
         try
         {
             if (e.IsDirectory)
             {
                 Directory.CreateDirectory(dest);
+                AppServices.Platform.ClaimFile(dest);
                 job.Copied++;
                 job.Step(e.Name);
                 foreach (var child in vol.List(e.Path)) CopyOut(child, dest, job);
@@ -495,9 +473,10 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
             }
             else
             {
-                if (File.Exists(dest) && !job.Overwrite) { job.Skipped++; job.Step(e.Name); AddLog($"Skipped {e.Name}: already exists in Windows."); return; }
+                if (File.Exists(dest) && !job.Overwrite) { job.Skipped++; job.Step(e.Name); AddLog($"Skipped {e.Name}: already exists in {AppServices.Platform.OsName}."); return; }
                 using (var fs = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20)) vol.ReadFile(e.Path, fs, job.Ct);
                 File.SetLastWriteTime(dest, e.Modified);
+                AppServices.Platform.ClaimFile(dest);
                 job.Copied++;
                 job.Step(e.Name, e.Size);
             }
@@ -527,7 +506,7 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
     public async Task DeleteAsync(IReadOnlyList<AmigaEntry> entries)
     {
         if (_session is null || !IsWritable || entries.Count == 0) return;
-        if (!Dialogs.Confirm($"Delete {entries.Count} item(s) from {AmigaLocation}? Folders are deleted with their contents. This cannot be undone.")) return;
+        if (!await Dialogs.Confirm($"Delete {entries.Count} item(s) from {AmigaLocation}? Folders are deleted with their contents. This cannot be undone.")) return;
         await Work("Deleting", async () =>
         {
             await Task.Run(() =>
@@ -598,7 +577,7 @@ public sealed partial class FilesViewModel(MainViewModel main) : PageViewModel, 
     private void AddLog(string line)
     {
         AppServices.Current.Log.Warn(line); // also in the log file, so reasons survive after the window is closed
-        System.Windows.Application.Current.Dispatcher.Invoke(() => Log.Insert(0, $"{DateTime.Now:HH:mm:ss}  {line}"));
+        AppServices.Platform.Invoke(() => Log.Insert(0, $"{DateTime.Now:HH:mm:ss}  {line}"));
     }
 
     private static string WindowsSafeName(string name)

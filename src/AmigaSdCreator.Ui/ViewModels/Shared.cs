@@ -1,14 +1,12 @@
 using System.Collections.ObjectModel;
-using System.Windows;
-using AmigaSdCreator.App.Services;
+using AmigaSdCreator.Ui.Services;
 using AmigaSdCreator.Core.Layout;
 using AmigaSdCreator.Core.Profiles;
 using AmigaSdCreator.Core.Safety;
-using AmigaSdCreator.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace AmigaSdCreator.App.ViewModels;
+namespace AmigaSdCreator.Ui.ViewModels;
 
 public abstract partial class PageViewModel : ObservableObject
 {
@@ -30,9 +28,9 @@ public sealed partial class DeviceItem(DiskDescriptor disk, string? protection) 
     {
         get
         {
-            var parts = new List<string> { Format.Bytes(Disk.SizeBytes), $"Disk {Disk.Number}", Disk.Bus.ToString(), Disk.PartitionStyle };
+            var parts = new List<string> { Format.Bytes(Disk.SizeBytes), Disk.LocationText, Disk.Bus.ToString(), Disk.PartitionStyle };
             if (Disk.LogicalSectorSize != 512) parts.Add($"{Disk.LogicalSectorSize}-byte sectors");
-            if (Disk.DriveLetters.Count > 0) parts.Add(string.Join(" ", Disk.DriveLetters.Select(l => l + ":")));
+            if (Disk.MountPoints.Count > 0) parts.Add(string.Join(" ", Disk.MountPoints.Select(m => m.Length > 1 ? m.TrimEnd('\\', '/') : m)));
             return string.Join("  \u2022  ", parts);
         }
     }
@@ -56,8 +54,8 @@ public sealed partial class DeviceItem(DiskDescriptor disk, string? protection) 
 /// <summary>Shared, auto-refreshing list of physical disks.</summary>
 public sealed partial class DeviceList : ObservableObject, IDisposable
 {
-    private readonly DeviceChangeWatcher _watcher = new();
-    private readonly System.Windows.Threading.DispatcherTimer _poll = new() { Interval = TimeSpan.FromSeconds(3) };
+    private readonly IDisposable _watcher;
+    private readonly IDisposable _poll;
     private bool _loadedOnce;
 
     public ObservableCollection<DeviceItem> All { get; } = [];
@@ -74,15 +72,15 @@ public sealed partial class DeviceList : ObservableObject, IDisposable
 
     public DeviceList()
     {
-        _watcher.Changed += (_, _) => Application.Current?.Dispatcher.InvokeAsync(() => RefreshCommand.Execute(null));
+        var platform = AppServices.Platform;
+        _watcher = platform.WatchDevices(() => platform.Post(() => RefreshCommand.Execute(null)));
         // Inserting a card into a reader that is already connected often raises no device event, so also
         // poll quietly. Polling is skipped while a disk operation runs.
-        _poll.Tick += async (_, _) =>
+        _poll = platform.StartTimer(TimeSpan.FromSeconds(3), async () =>
         {
             if (MainViewModel.Instance is { IsBusy: true }) return;
             await RefreshAsync();
-        };
-        _poll.Start();
+        });
     }
 
     [RelayCommand]
@@ -144,7 +142,7 @@ public sealed partial class DeviceList : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _poll.Stop();
+        _poll.Dispose();
         _watcher.Dispose();
     }
 }
@@ -195,7 +193,7 @@ public sealed partial class HardwareSelection : ObservableObject
 
     public static string UseText(IntendedUse u) => u switch
     {
-        IntendedUse.DataExchange => "Data transfer card (share files with Windows)",
+        IntendedUse.DataExchange => $"Data transfer card (share files with {AppServices.Platform.OsName})",
         IntendedUse.HardDrive => "Amiga hard drive (extra storage)",
         IntendedUse.BootableSystem => "Bootable system drive",
         _ => u.ToString(),

@@ -1,10 +1,10 @@
 using System.IO;
-using AmigaSdCreator.App.Services;
+using AmigaSdCreator.Ui.Services;
 using AmigaSdCreator.Core.Profiles;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace AmigaSdCreator.App.ViewModels;
+namespace AmigaSdCreator.Ui.ViewModels;
 
 public sealed partial class SettingsViewModel : PageViewModel
 {
@@ -53,11 +53,23 @@ public sealed partial class SettingsViewModel : PageViewModel
     partial void OnAllowNonRemovableBusChanged(bool value)
     {
         if (_loading) return;
-        if (value && !Dialogs.Confirm("Allow internal SATA/NVMe/SCSI disks as targets?\n\nOnly enable this for a dedicated card reader that Windows reports incorrectly. Windows system disks always remain protected."))
+        if (value) _ = ConfirmNonRemovableAsync();
+        else ApplyNonRemovable(false);
+    }
+
+    private async Task ConfirmNonRemovableAsync()
+    {
+        string os = AppServices.Platform.OsName;
+        if (await Dialogs.Confirm($"Allow internal SATA/NVMe/SCSI disks as targets?\n\nOnly enable this for a dedicated card reader that {os} reports incorrectly. {os} system disks always remain protected."))
         {
-            _loading = true; AllowNonRemovableBus = false; _loading = false;
+            ApplyNonRemovable(true);
             return;
         }
+        _loading = true; AllowNonRemovableBus = false; _loading = false;
+    }
+
+    private void ApplyNonRemovable(bool value)
+    {
         AppServices.Current.UpdateSettings(s => s with { AllowNonRemovableBus = value });
         _ = MainViewModel.Instance.Devices.RefreshAsync();
     }
@@ -73,6 +85,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private void OpenLogFolder()
     {
         Directory.CreateDirectory(LogFolder);
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(LogFolder) { UseShellExecute = true });
+        AppServices.Platform.ClaimFile(LogFolder);
+        AppServices.Platform.Open(LogFolder);
     }
 }

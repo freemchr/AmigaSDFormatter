@@ -1,5 +1,5 @@
 using System.IO;
-using AmigaSdCreator.App.Services;
+using AmigaSdCreator.Ui.Services;
 using AmigaSdCreator.Core.Diagnostics;
 using AmigaSdCreator.Core.IO;
 using AmigaSdCreator.Core.Layout;
@@ -7,7 +7,7 @@ using AmigaSdCreator.Core.Profiles;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace AmigaSdCreator.App.ViewModels;
+namespace AmigaSdCreator.Ui.ViewModels;
 
 public sealed record FactRow(string Text, string SourceTitle, string SourceUrl, string? SourceNote);
 
@@ -43,9 +43,9 @@ public sealed partial class AdvancedViewModel(MainViewModel main) : PageViewMode
     private void HardwareChanged(object? s, System.ComponentModel.PropertyChangedEventArgs e) => OnPropertyChanged(nameof(Facts));
 
     [RelayCommand]
-    private void BrowseImage()
+    private async Task BrowseImageAsync()
     {
-        var p = Dialogs.OpenFile(Dialogs.ImageFilter, "Choose an image to inspect");
+        var p = await Dialogs.OpenFile(Dialogs.ImageFilter, "Choose an image to inspect");
         if (p is null) return;
         ImagePath = p;
         UseImageFile = true;
@@ -56,7 +56,7 @@ public sealed partial class AdvancedViewModel(MainViewModel main) : PageViewMode
     {
         Error = null;
         RawReport = null;
-        if (!UseImageFile && !main.IsElevated) { Error = "Reading a card directly requires administrator rights."; return; }
+        if (!UseImageFile && !main.IsElevated) { Error = $"Reading a card directly requires {AppServices.Platform.AdminRightsText}."; return; }
         if (UseImageFile ? string.IsNullOrEmpty(ImagePath) : SelectedDevice is null) { Error = "Choose a card or image."; return; }
         var disk = SelectedDevice?.Disk;
         var image = ImagePath;
@@ -80,14 +80,15 @@ public sealed partial class AdvancedViewModel(MainViewModel main) : PageViewMode
     private void OpenProfileFolder()
     {
         Directory.CreateDirectory(AppServices.ProfileDirectory);
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppServices.ProfileDirectory) { UseShellExecute = true });
+        AppServices.Platform.ClaimFile(AppServices.ProfileDirectory);
+        AppServices.Platform.Open(AppServices.ProfileDirectory);
     }
 
     [RelayCommand]
     private static void OpenUrl(string? url)
     {
         if (Uri.TryCreate(url, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttps || u.Scheme == Uri.UriSchemeHttp))
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(u.ToString()) { UseShellExecute = true });
+            AppServices.Platform.Open(u.ToString());
     }
 
     public static string LimitText(long? bytes) => bytes is long b ? Format.Bytes(b) : "no limit";

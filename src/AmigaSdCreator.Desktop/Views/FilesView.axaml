@@ -1,0 +1,132 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AmigaSdCreator.Ui.ViewModels"
+             xmlns:fs="using:AmigaSdCreator.Core.FileSystems"
+             x:Class="AmigaSdCreator.Desktop.Views.FilesView"
+             x:DataType="vm:FilesViewModel">
+    <Grid Margin="20,16" RowDefinitions="Auto,*,Auto">
+        <StackPanel>
+            <TextBlock Text="Amiga Files" Classes="H1"/>
+            <TextBlock Classes="Subtle" Margin="0,0,0,14"
+                       Text="Copy files between this computer and a card: FAT32 transfer cards, or the Amiga (OFS/FFS) partitions of hard-drive cards and disk images. Drag and drop between the panes, or drop files from your file manager onto the right side."/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,*">
+            <!-- Local pane -->
+            <Border Classes="Card" Margin="0" Padding="12">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <Button DockPanel.Dock="Right" Classes="Header" Command="{Binding LoadDrivesCommand}" ToolTip.Tip="Refresh drives" Margin="4,0,0,0">
+                            <TextBlock Text="&#x27F3;" Classes="Icon"/>
+                        </Button>
+                        <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding Drives}" SelectedItem="{Binding SelectedDrive}" Width="200"
+                                  DisplayMemberBinding="{Binding Name, x:DataType=vm:WindowsEntry}" HorizontalAlignment="Right"/>
+                        <TextBlock Text="This computer" Classes="H2" Margin="0" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+                    </DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Left" Content="&#x2191;" ToolTip.Tip="Up one folder" Command="{Binding WindowsUpCommand}" Padding="10,4" Margin="0,0,6,0"/>
+                        <Button DockPanel.Dock="Right" Content="Browse..." Command="{Binding BrowseWindowsFolderCommand}" Margin="6,0,0,0"/>
+                        <TextBox x:Name="WindowsPathBox" Text="{Binding WindowsPath, Mode=OneWay}" ToolTip.Tip="Type a path and press Enter"/>
+                    </DockPanel>
+                    <ListBox x:Name="WindowsList" ItemsSource="{Binding WindowsEntries}" SelectionMode="Multiple" DragDrop.AllowDrop="True">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:WindowsEntry">
+                                <Grid ColumnDefinitions="22,*,80">
+                                    <Border Width="12" Height="10" CornerRadius="2" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                            Background="{DynamicResource WarnBrush}" IsVisible="{Binding IsDirectory}"/>
+                                    <Border Width="10" Height="12" CornerRadius="1" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                            BorderBrush="{DynamicResource SubtleTextBrush}" BorderThickness="1" IsVisible="{Binding !IsDirectory}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding SizeText}" Classes="Subtle" HorizontalAlignment="Right" TextWrapping="NoWrap"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Transfer buttons -->
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
+                <Button Content="Copy &#x2192;" Click="OnCopyRight" Margin="0,0,0,10" HorizontalAlignment="Stretch"
+                        ToolTip.Tip="Copy the selected files on this computer to the Amiga folder" IsEnabled="{Binding IsWritable}"/>
+                <Button Content="&#x2190; Copy" Click="OnCopyLeft" Margin="0" HorizontalAlignment="Stretch"
+                        ToolTip.Tip="Copy the selected Amiga files to the folder on this computer" IsEnabled="{Binding IsOpen}"/>
+                <CheckBox Content="Overwrite" IsChecked="{Binding Overwrite}" Margin="0,14,0,0" ToolTip.Tip="Replace files that already exist at the destination"/>
+            </StackPanel>
+
+            <!-- Amiga pane -->
+            <Border Grid.Column="2" Classes="Card" Margin="0" Padding="12">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Amiga" Classes="H2"/>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,6" ColumnDefinitions="Auto,*,Auto">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <RadioButton Content="Card" IsChecked="{Binding !SourceIsImage}" Foreground="{DynamicResource TextBrush}" Margin="0,0,10,0" GroupName="FilesSource"/>
+                            <RadioButton Content="Image" IsChecked="{Binding SourceIsImage}" Foreground="{DynamicResource TextBrush}" GroupName="FilesSource"/>
+                        </StackPanel>
+                        <Grid Grid.Column="1">
+                            <ComboBox ItemsSource="{Binding Devices.Cards}" SelectedItem="{Binding SelectedDevice}" IsVisible="{Binding !SourceIsImage}"/>
+                            <DockPanel IsVisible="{Binding SourceIsImage}">
+                                <Button DockPanel.Dock="Right" Content="..." Command="{Binding BrowseImageCommand}" Margin="6,0,0,0" Padding="10,4"/>
+                                <TextBox Text="{Binding ImagePath}" IsReadOnly="True"/>
+                            </DockPanel>
+                        </Grid>
+                        <Button Grid.Column="2" Content="Open" Command="{Binding OpenSourceCommand}" Margin="6,0,0,0"/>
+                    </Grid>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <CheckBox DockPanel.Dock="Right" Content="Allow changes" IsChecked="{Binding AllowChanges}" Margin="10,0,0,0"
+                                  ToolTip.Tip="Open the partition for writing. Without this, it is opened read-only."/>
+                        <ComboBox x:Name="PartitionBox" ItemsSource="{Binding PartitionChoices}" SelectedItem="{Binding SelectedPartition}"/>
+                    </DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <Button DockPanel.Dock="Left" Content="&#x2191;" Command="{Binding AmigaUpCommand}" Padding="10,4" Margin="0,0,6,0" IsEnabled="{Binding IsOpen}"/>
+                        <TextBlock Text="{Binding AmigaLocation}" Classes="Mono" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                    </DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding VolumeInfo}" Classes="Subtle" FontSize="12" Margin="0,0,0,6"
+                               IsVisible="{Binding VolumeInfo, Converter={StaticResource VisibleWhen}}"/>
+                    <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0" IsEnabled="{Binding IsWritable}">
+                        <Button DockPanel.Dock="Right" Content="Delete" Click="OnDelete" Margin="6,0,0,0"/>
+                        <Button DockPanel.Dock="Right" Content="New folder" Command="{Binding NewFolderCommand}" Margin="6,0,0,0"/>
+                        <TextBox Text="{Binding NewFolderName}" Watermark="New folder name" ToolTip.Tip="Name for a new folder (max 30 characters)"/>
+                    </DockPanel>
+                    <ListBox x:Name="AmigaList" ItemsSource="{Binding AmigaEntries}" SelectionMode="Multiple" DragDrop.AllowDrop="True">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="fs:AmigaEntry">
+                                <Grid ColumnDefinitions="22,*,80,76" Background="Transparent"
+                                      ToolTip.Tip="{Binding Comment}" ToolTip.IsEnabled="{Binding Comment, Converter={StaticResource VisibleWhen}}">
+                                    <Border Width="12" Height="10" CornerRadius="2" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                            Background="{DynamicResource WarnBrush}" IsVisible="{Binding IsDirectory}"/>
+                                    <Border Width="10" Height="12" CornerRadius="1" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                            BorderBrush="{DynamicResource SubtleTextBrush}" BorderThickness="1" IsVisible="{Binding !IsDirectory}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding Size, Converter={StaticResource Bytes}}" Classes="Subtle" HorizontalAlignment="Right"
+                                               TextWrapping="NoWrap" IsVisible="{Binding !IsDirectory}"/>
+                                    <TextBlock Grid.Column="3" Text="{Binding ProtectionText}" Classes="Mono" Foreground="{DynamicResource SubtleTextBrush}"
+                                               HorizontalAlignment="Right" TextWrapping="NoWrap"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- Status -->
+        <Grid Grid.Row="2" Margin="0,10,0,0" RowDefinitions="Auto,Auto">
+            <StackPanel>
+                <DockPanel IsVisible="{Binding IsCopying}" Margin="0,0,0,6">
+                    <Button DockPanel.Dock="Right" Content="Cancel" Command="{Binding CancelCopyCommand}" Margin="10,0,0,0" Padding="12,3"/>
+                    <StackPanel>
+                        <ProgressBar Value="{Binding CopyPercent}" Maximum="100" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding CopyProgress}" Classes="Subtle" FontSize="12" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                    </StackPanel>
+                </DockPanel>
+                <DockPanel>
+                    <ProgressBar DockPanel.Dock="Right" IsIndeterminate="True" Width="120" IsVisible="{Binding IsWorking}"/>
+                    <TextBlock Text="{Binding Status}" VerticalAlignment="Center"/>
+                </DockPanel>
+            </StackPanel>
+            <ListBox Grid.Row="1" ItemsSource="{Binding Log}" MaxHeight="90" Margin="0,6,0,0" FontFamily="{DynamicResource MonoFont}" FontSize="11"
+                     IsVisible="{Binding Log.Count}"/>
+        </Grid>
+    </Grid>
+</UserControl>

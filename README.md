@@ -2,20 +2,20 @@
 
 # Amiga SD Creator
 
-A Windows desktop utility that prepares, diagnoses, backs up and fills SD cards for Amiga computers, without needing HDToolBox on the Amiga.
+A desktop utility for **Windows** and **Linux (Debian, Ubuntu, Raspberry Pi OS)** that prepares, diagnoses, backs up and fills SD cards for Amiga computers, without needing HDToolBox on the Amiga.
 
 - **Apollo A6000**: FAT32 data-transfer cards for the SD slot, and Amiga hard-drive (RDB) cards.
 - **Classic Amigas** (A500, A600, A1200, A2000, A3000, A4000, any other RDB machine, WinUAE): SD/CF-to-IDE hard-drive cards laid out exactly like a real Amiga hard drive, with Kickstart-aware size limits. Also FAT32 transfer cards, FAT32 USB sticks for Gotek/FlashFloppy, and **PiStorm (Emu68)** SD cards (FAT32 boot partition + Amiga 0x76 partition with an RDB). For PiStorm the app downloads the latest Emu68 release from GitHub and installs it; you can add your own Kickstart ROM and set it up for a **Framethrower** video board (720p/1080p 50 Hz, pixel-perfect or smooth scaling).
 - **Diagnose** an existing card without changing it, including likely reasons for an *"Uninitialized"* volume.
-- **Amiga Files**: drag and drop files between Windows and the FFS partitions on a card or image.
+- **Amiga Files**: drag and drop files between your computer and the FFS partitions on a card or image.
 - **Backup & Restore** whole cards, with SHA-256 checks and read-back verification.
 
 > Version 1.0. The on-disk formats are verified against independent tools (see [Verification](#verification)), and the Apollo A6000 FAT32 transfer card has been tested on real hardware. Hardware test reports for other machines are welcome.
 
 ## Using it
 
-1. Run `AmigaSdCreator.exe`. Writing to cards needs administrator rights, and the app offers to restart elevated when that's required.
-2. **Select SD Card.** Only USB/SD card readers are offered. The Windows system disk is always protected.
+1. Run `AmigaSdCreator.exe` (Windows) or **Amiga SD Creator** from the applications menu (Linux). Writing to cards needs administrator (Windows) or root (Linux) rights, and the app offers to restart elevated when that's required.
+2. **Select SD Card.** Only USB/SD card readers are offered. The system disk is always protected.
 3. **Choose your Amiga** (top-right dropdown) and a **configuration tile** (e.g. *File Transfer* or *Hard Drive*).
 4. Check the summary (partition scheme, filesystem, partitions, boot partition, Kickstart, unused space).
 5. Press **Prepare SD Card**, review what's on the card now, and type `ERASE`.
@@ -46,18 +46,36 @@ The tool never calls a card "corrupt" just because Windows can't read it. Window
 
 Before writing, the first and last 1 MiB of the card are cleared so that no stale MBR/GPT/RDB remains.
 
+## Linux
+
+Install the package for your machine from the [releases page](https://github.com/freemchr/AmigaSDFormatter/releases):
+
+```
+sudo apt install ./amiga-sd-creator_<version>_amd64.deb     # PCs
+sudo apt install ./amiga-sd-creator_<version>_arm64.deb     # Raspberry Pi OS 64-bit, other ARM64
+```
+
+Then start **Amiga SD Creator** from the applications menu, or run `amiga-sd-creator`. The app opens as your normal user and can list cards. To read or write them, press **Restart as root**: polkit asks for your password and reopens the app with access to the card. The `asdc` command-line tool is installed too.
+
+How the Linux version differs from the Windows one:
+
+- Cards are found with `lsblk`. A disk is protected if it, or anything stacked on it (LVM, LUKS, RAID), holds `/`, `/boot`, `/usr`, `/var`, `/home` or swap.
+- Before writing, the card's mounted partitions are unmounted, and the device is opened with `O_EXCL`, so the kernel refuses the write if anything still uses the card.
+- FAT32 partitions mounted by your desktop (for example `/media/you/SD0`) appear on the Files page. For PiStorm cards, the app mounts the new boot partition itself to install Emu68 if the desktop doesn't.
+- Settings and logs are in `~/.local/share/AmigaSdCreator`. Files the root app saves in your home folder are given back to you.
+
 ## Safety
 
 - Inspection is read-only; disks are opened read-only unless a write was confirmed.
-- System, boot and page-file disks can never be written, whatever the settings. Internal (SATA/NVMe) disks and disks over 512 GB are blocked unless enabled in Settings.
+- System, boot and page-file (swap) disks can never be written, whatever the settings. Internal (SATA/NVMe) disks and disks over 512 GB are blocked unless enabled in Settings.
 - The card's identity (path, model, serial, unique ID, size, sector size) is captured when you select it. It is re-checked right before writing and again after opening the device. If anything differs, or the card has gone, nothing is written. The app never falls back to another disk.
-- Volumes on the card are locked and dismounted before raw writes.
+- Volumes on the card are locked and dismounted (Windows) or unmounted and opened exclusively (Linux) before raw writes.
 - Interrupted writes are reported as such ("the card is now incomplete"), never as success.
-- Logs (`%LOCALAPPDATA%\AmigaSdCreator\Logs`) use disk numbers and a short hash. They never contain serial numbers or file contents, and your user folder path is masked.
+- Logs (`%LOCALAPPDATA%\AmigaSdCreator\Logs` on Windows, `~/.local/share/AmigaSdCreator/Logs` on Linux) use disk numbers and a short hash. They never contain serial numbers or file contents, and your user folder path is masked.
 
 ## Building
 
-Requirements: .NET 10 SDK. The WPF app and Windows layer build on Windows. The core library, CLI and tests also build and run on Linux/macOS.
+Requirements: .NET 10 SDK. The WPF app and Windows layer build on Windows. The core library, shared view models (`AmigaSdCreator.Ui`), the Linux app (`AmigaSdCreator.Desktop`, Avalonia), CLI and tests build and run on Linux.
 
 ```powershell
 dotnet build AmigaSdCreator.sln
@@ -70,6 +88,8 @@ Release packages: `pwsh build\publish.ps1` runs the tests and produces in `artif
 - `AmigaSdCreator-<ver>-win-x64-portable.zip`: self-contained single-file app; no .NET install needed.
 - `asdc-<ver>-win-x64.zip`: command-line tool.
 - `AmigaSdCreator-<ver>-setup.exe`: only if Inno Setup 6 is installed. `build\installer.iss` has not yet been compiled.
+
+Linux packages: `build/package-deb.sh` runs the tests and produces `artifacts/amiga-sd-creator_<ver>_amd64.deb` and `_arm64.deb` (self-contained; no .NET install needed). Run the Linux app from source with `dotnet run --project src/AmigaSdCreator.Desktop`.
 
 ### Command-line tool (image files only)
 
@@ -84,7 +104,7 @@ asdc inspect card.img --interface a6000-sd-data --report report.md
 
 ## Verification
 
-- **89 automated tests** (`tests/AmigaSdCreator.Core.Tests`): partition tables, FAT32, FFS, the FFS file engine, layout limits, diagnostics fixtures (exFAT, GPT, stale RDB, superfloppy, unformatted RDB), safety gate, backup/restore including gzip, a fake-capacity card and an interrupted write.
+- **102 automated tests** (`tests/AmigaSdCreator.Core.Tests`): partition tables, FAT32, FFS, the FFS file engine, layout limits, diagnostics fixtures (exFAT, GPT, stale RDB, superfloppy, unformatted RDB), safety gate, backup/restore including gzip, a fake-capacity card, an interrupted write, and the Linux disk layer's lsblk/mount parsing.
 - **Interop with amitools 0.8.1** (rdbtool/xdftool, an independent implementation): our RDBs pass `rdbtool info/show`, and we read rdbtool-made RDBs. Our FFS volumes are readable and writable by xdftool. Files we write are unpacked byte-for-byte by xdftool (OFS and FFS, including extension blocks), and we read files xdftool wrote. These tests run automatically when amitools is installed:
   ```
   uv venv ~/.cache/asdc-tools/venv && uv pip install --python ~/.cache/asdc-tools/venv/bin/python amitools==0.8.1

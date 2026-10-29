@@ -6,7 +6,10 @@
 |---|---|---|
 | `AmigaSdCreator.Core` | net10.0 (cross-platform) | Every format and rule: block devices, MBR/GPT/RDB, FAT32 and OFS/FFS (format, inspect, read/write files), hardware profiles, layout planning/validation, image building and verification, diagnostics, imaging, the safety gate. No UI or OS code. |
 | `AmigaSdCreator.Windows` | net10.0-windows | Disk discovery (Storage WMI `MSFT_Disk`/`MSFT_Partition`), raw `\\.\PhysicalDriveN` I/O, volume lock/dismount, device-change events, elevation. Implements `IDiskService`. |
-| `AmigaSdCreator.App` | WPF, MVVM (CommunityToolkit.Mvvm) | UI only. View models call Core services; views have no logic beyond drag-and-drop and tile selection. |
+| `AmigaSdCreator.Ui` | net10.0 | View models (CommunityToolkit.Mvvm) and app services shared by both front ends. Talks to the OS and UI toolkit only through `IPlatform` (disks, dialogs, UI thread, elevation, mounts, theme). |
+| `AmigaSdCreator.App` | WPF (Windows) | Windows front end: XAML views, converters, `WpfPlatform`. |
+| `AmigaSdCreator.Linux` | net10.0 (Linux) | Disk discovery (`lsblk` + `/proc/self/mountinfo` + `/proc/swaps`), raw `/dev` I/O (`pread`/`pwrite`, `O_EXCL` for writes, `BLKGETSIZE64`, `BLKRRPART`), unmounting, pkexec elevation, device-change watching. Implements `IDiskService`. |
+| `AmigaSdCreator.Desktop` | Avalonia 11 (Linux) | Linux front end: AXAML views mirroring the WPF ones, `AvaloniaPlatform`. Packaged as a `.deb` by `build/package-deb.sh`. |
 | `AmigaSdCreator.Cli` | net10.0 | `asdc`: create, inspect and verify **image files**. Never opens physical disks. |
 | `AmigaSdCreator.Core.Tests` | xUnit | Unit, fixture and amitools interop tests. |
 

@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Windows;
-using AmigaSdCreator.App.Services;
+using AmigaSdCreator.Ui.Services;
 using AmigaSdCreator.Core.Diagnostics;
 using AmigaSdCreator.Core.IO;
 using AmigaSdCreator.Core.Layout;
@@ -11,7 +10,7 @@ using AmigaSdCreator.Core.Safety;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace AmigaSdCreator.App.ViewModels;
+namespace AmigaSdCreator.Ui.ViewModels;
 
 /// <summary>
 /// Guided preparation: target, model, connection, use, inspect, configure, preview, confirm,
@@ -166,9 +165,9 @@ public sealed partial class PrepareViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void BrowseImage()
+    private async Task BrowseImageAsync()
     {
-        var path = Dialogs.SaveFile("Disk image (*.img)|*.img|Amiga hardfile (*.hdf)|*.hdf", "Create disk image", "amiga-sd.img");
+        var path = await Dialogs.SaveFile("Disk image (*.img)|*.img|Amiga hardfile (*.hdf)|*.hdf", "Create disk image", "amiga-sd.img");
         if (path is not null) { ImagePath = path; TargetIsImage = true; }
     }
 
@@ -369,14 +368,14 @@ public sealed partial class PrepareViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private void AddHandler()
+    private async Task AddHandlerAsync()
     {
-        var path = Dialogs.OpenFile("Amiga filesystem handler|*.*", "Choose a filesystem handler (e.g. pfs3aio)");
+        var path = await Dialogs.OpenFile("Amiga filesystem handler|*.*", "Choose a filesystem handler (e.g. pfs3aio)");
         if (path is null) return;
         try
         {
             var bin = File.ReadAllBytes(path);
-            if (!HunkFile.IsHunkExecutable(bin)) { Dialogs.Error("That file is not an AmigaDOS executable (hunk file)."); return; }
+            if (!HunkFile.IsHunkExecutable(bin)) { await Dialogs.Error("That file is not an AmigaDOS executable (hunk file)."); return; }
             var name = Path.GetFileName(path);
             var dt = name.Contains("pfs", StringComparison.OrdinalIgnoreCase) ? DosType.Pfs3
                 : name.Contains("sfs", StringComparison.OrdinalIgnoreCase) || name.Contains("smartfilesystem", StringComparison.OrdinalIgnoreCase) ? DosType.Sfs0
@@ -385,7 +384,7 @@ public sealed partial class PrepareViewModel : PageViewModel
             Handlers.Add(new FileSystemDriverPlan(dt, name, bin, (ver?.Major ?? 0) << 16 | (ver?.Minor ?? 0), ver?.Text ?? "version unknown"));
             Rebuild();
         }
-        catch (IOException ex) { Dialogs.Error(ex.Message); }
+        catch (IOException ex) { await Dialogs.Error(ex.Message); }
     }
 
     [RelayCommand]
@@ -441,7 +440,7 @@ public sealed partial class PrepareViewModel : PageViewModel
             var checks = await AppServices.Current.Operations.PreflightAsync(_selectedIdentity, DeviceBytes, SafetyPolicy.ConfirmationWord);
             foreach (var c in checks.Where(c => c.Name != "Erase confirmed")) SafetyChecks.Add(c);
         }
-        catch (Exception ex) when (ex is IOException or System.Management.ManagementException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             SafetyChecks.Add(new SafetyCheck("Device check", false, ex.Message));
         }
@@ -471,6 +470,7 @@ public sealed partial class PrepareViewModel : PageViewModel
                     ((IProgress<string>)progress).Report("Verifying");
                     return LayoutVerifier.Verify(dev, plan);
                 });
+                AppServices.Platform.ClaimFile(path);
             }
             else
             {
@@ -512,13 +512,14 @@ public sealed partial class PrepareViewModel : PageViewModel
     private string NextSteps(LayoutPlan plan, StorageInterfaceProfile iface)
     {
         var lines = new List<string>();
+        string os = AppServices.Platform.OsName;
         if (TargetIsImage)
         {
             lines.Add("Write the image to a card with Backup & Restore > Restore, or use it as a hardfile in WinUAE.");
         }
         if (plan.Kind == LayoutKind.MbrFat32)
         {
-            lines.Add("Windows shows the card as a normal drive labelled " + plan.FatLabel + ": copy files onto it with Explorer or the Files page, then eject it safely.");
+            lines.Add($"{os} shows the card as a normal drive labelled {plan.FatLabel}: copy files onto it with {AppServices.Platform.FileManagerName} or the Files page, then eject it safely.");
             lines.Add(iface.Id switch
             {
                 var id when id.StartsWith("a6000", StringComparison.Ordinal) => "On the A6000, mount it from the ApolloOS Start Menu: SD Card > Mount.",
@@ -528,12 +529,12 @@ public sealed partial class PrepareViewModel : PageViewModel
         }
         if (plan.Kind == LayoutKind.Emu68)
         {
-            lines.Add($"Copy the files from an Emu68 release (and your Kickstart ROM, if your config uses one) onto the {plan.FatLabel} drive that Windows now shows, then eject the card.");
+            lines.Add($"Copy the files from an Emu68 release (and your Kickstart ROM, if your config uses one) onto the {plan.FatLabel} drive that {os} now shows, then eject the card.");
             lines.Add("Under AmigaOS the Amiga partitions are on brcm-sdhc.device (Pi 3 / Zero 2) or brcm-emmc.device (Pi 4 / CM4).");
         }
         if (plan.Kind is LayoutKind.Rdb or LayoutKind.Emu68)
         {
-            lines.Add("Windows cannot read Amiga partitions. If Windows offers to format or initialise this card, choose Cancel - doing so would erase it.");
+            lines.Add($"{os} cannot read Amiga partitions. If {os} offers to format or initialise this card, choose Cancel - doing so would erase it.");
             lines.Add("Use 'Amiga Files' in this app to copy files onto the FFS partitions.");
             var unformatted = plan.Partitions.Where(p => !p.WillBeFormatted).Select(p => p.DeviceName + ":").ToList();
             if (unformatted.Count > 0)

@@ -1,0 +1,45 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Same palette as the Windows app (Themes/Dark.xaml, Themes/Light.xaml). Switched with RequestedThemeVariant. -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="WindowBrush" Color="#11151C"/>
+            <SolidColorBrush x:Key="PanelBrush" Color="#1A2029"/>
+            <SolidColorBrush x:Key="PanelAltBrush" Color="#222A35"/>
+            <SolidColorBrush x:Key="InputBrush" Color="#0F1319"/>
+            <SolidColorBrush x:Key="BorderBrush" Color="#2E3846"/>
+            <SolidColorBrush x:Key="TextBrush" Color="#E8ECF2"/>
+            <SolidColorBrush x:Key="SubtleTextBrush" Color="#93A0B2"/>
+            <SolidColorBrush x:Key="AccentBrush" Color="#FF8800"/>
+            <SolidColorBrush x:Key="AccentTextBrush" Color="#1A0E00"/>
+            <SolidColorBrush x:Key="BlueBrush" Color="#4D8FE0"/>
+            <SolidColorBrush x:Key="HoverBrush" Color="#263140"/>
+            <SolidColorBrush x:Key="SelectedBrush" Color="#2C4466"/>
+            <SolidColorBrush x:Key="OkBrush" Color="#4CC38A"/>
+            <SolidColorBrush x:Key="InfoBrush" Color="#6FA8F0"/>
+            <SolidColorBrush x:Key="WarnBrush" Color="#F2B33D"/>
+            <SolidColorBrush x:Key="ErrorBrush" Color="#F0605A"/>
+            <SolidColorBrush x:Key="DangerBrush" Color="#C8372F"/>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="WindowBrush" Color="#EEF1F5"/>
+            <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="PanelAltBrush" Color="#F4F6F9"/>
+            <SolidColorBrush x:Key="InputBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="BorderBrush" Color="#CDD4DE"/>
+            <SolidColorBrush x:Key="TextBrush" Color="#16202C"/>
+            <SolidColorBrush x:Key="SubtleTextBrush" Color="#5A6778"/>
+            <SolidColorBrush x:Key="AccentBrush" Color="#E67700"/>
+            <SolidColorBrush x:Key="AccentTextBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="BlueBrush" Color="#0055AA"/>
+            <SolidColorBrush x:Key="HoverBrush" Color="#E3E9F1"/>
+            <SolidColorBrush x:Key="SelectedBrush" Color="#CFE0F5"/>
+            <SolidColorBrush x:Key="OkBrush" Color="#1E8A55"/>
+            <SolidColorBrush x:Key="InfoBrush" Color="#1D64B8"/>
+            <SolidColorBrush x:Key="WarnBrush" Color="#A86A00"/>
+            <SolidColorBrush x:Key="ErrorBrush" Color="#C42B23"/>
+            <SolidColorBrush x:Key="DangerBrush" Color="#B3261E"/>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+    <FontFamily x:Key="MonoFont">DejaVu Sans Mono, Liberation Mono, monospace</FontFamily>
+</ResourceDictionary>

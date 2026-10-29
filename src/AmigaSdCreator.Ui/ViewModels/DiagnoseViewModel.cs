@@ -1,11 +1,11 @@
 using System.IO;
-using AmigaSdCreator.App.Services;
+using AmigaSdCreator.Ui.Services;
 using AmigaSdCreator.Core.Diagnostics;
 using AmigaSdCreator.Core.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace AmigaSdCreator.App.ViewModels;
+namespace AmigaSdCreator.Ui.ViewModels;
 
 /// <summary>Read-only analysis of a card or image file. Never opens anything for writing.</summary>
 public sealed partial class DiagnoseViewModel(MainViewModel main) : PageViewModel
@@ -39,9 +39,9 @@ public sealed partial class DiagnoseViewModel(MainViewModel main) : PageViewMode
     }
 
     [RelayCommand]
-    private void BrowseImage()
+    private async Task BrowseImageAsync()
     {
-        var path = Dialogs.OpenFile(Dialogs.ImageFilter, "Choose a disk image to diagnose");
+        var path = await Dialogs.OpenFile(Dialogs.ImageFilter, "Choose a disk image to diagnose");
         if (path is null) return;
         ImagePath = path;
         UseImageFile = true;
@@ -54,7 +54,7 @@ public sealed partial class DiagnoseViewModel(MainViewModel main) : PageViewMode
         Report = null;
         if (UseImageFile && string.IsNullOrEmpty(ImagePath)) { Error = "Choose an image file first."; return; }
         if (!UseImageFile && SelectedDevice is null) { Error = "Choose a card first."; return; }
-        if (NeedsElevation) { Error = "Reading a card directly requires administrator rights. Use 'Restart as administrator' at the bottom left."; return; }
+        if (NeedsElevation) { Error = $"Reading a card directly requires {AppServices.Platform.AdminRightsText}. Use '{AppServices.Platform.RestartElevatedText}' at the top."; return; }
 
         IsRunning = true;
         try
@@ -87,16 +87,17 @@ public sealed partial class DiagnoseViewModel(MainViewModel main) : PageViewMode
     }
 
     [RelayCommand]
-    private void Export()
+    private async Task ExportAsync()
     {
         if (Report is null) return;
-        var path = Dialogs.SaveFile("Markdown report (*.md)|*.md|JSON report (*.json)|*.json", "Export diagnostic report", $"amiga-sd-report-{DateTime.Now:yyyyMMdd-HHmm}.md");
+        var path = await Dialogs.SaveFile("Markdown report (*.md)|*.md|JSON report (*.json)|*.json", "Export diagnostic report", $"amiga-sd-report-{DateTime.Now:yyyyMMdd-HHmm}.md");
         if (path is null) return;
         try
         {
             File.WriteAllText(path, path.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? ReportExporter.ToJson(Report) : ReportExporter.ToMarkdown(Report));
+            AppServices.Platform.ClaimFile(path);
         }
-        catch (IOException ex) { Dialogs.Error($"The report could not be saved: {ex.Message}"); }
+        catch (IOException ex) { await Dialogs.Error($"The report could not be saved: {ex.Message}"); }
     }
 
     [RelayCommand]

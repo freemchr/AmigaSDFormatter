@@ -1,11 +1,9 @@
-using System.Windows;
-using AmigaSdCreator.App.Services;
+using AmigaSdCreator.Ui.Services;
 using AmigaSdCreator.Core.Profiles;
-using AmigaSdCreator.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace AmigaSdCreator.App.ViewModels;
+namespace AmigaSdCreator.Ui.ViewModels;
 
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -23,6 +21,8 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial bool IsBusy { get; set; }
 
     public bool IsElevated { get; } = AppServices.Current.Disks.IsElevated;
+    public string RestartElevatedText => AppServices.Platform.RestartElevatedText;
+    public string ElevationNote => $"Cards are listed, but reading or writing them needs {AppServices.Platform.AdminRightsText}.";
     public string Version { get; } = typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "";
 
     public MainViewModel()
@@ -68,14 +68,14 @@ public sealed partial class MainViewModel : ObservableObject
     private void RestartElevated()
     {
         if (BlockIfBusy()) return;
-        if (Elevation.TryRestartElevated()) Application.Current.Shutdown();
+        if (AppServices.Platform.TryRestartElevated()) AppServices.Platform.Shutdown();
     }
 
     /// <summary>Prevents navigation-triggered restarts while a disk operation runs.</summary>
     public bool BlockIfBusy()
     {
         if (!IsBusy) return false;
-        Dialogs.Info("An operation is in progress. Wait for it to finish first.");
+        _ = Dialogs.Info("An operation is in progress. Wait for it to finish first.");
         return true;
     }
 

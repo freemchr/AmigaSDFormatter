@@ -109,7 +109,7 @@ public sealed class InverseBoolConverter : IValueConverter
 public sealed class UseTextConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is IntendedUse u ? ViewModels.HardwareSelection.UseText(u) : "";
+        value is IntendedUse u ? AmigaSdCreator.Ui.ViewModels.HardwareSelection.UseText(u) : "";
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
@@ -117,7 +117,7 @@ public sealed class UseTextConverter : IValueConverter
 public sealed class StatusTextConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is VerificationStatus s ? ViewModels.MainViewModel.StatusText(s) : "";
+        value is VerificationStatus s ? AmigaSdCreator.Ui.ViewModels.MainViewModel.StatusText(s) : "";
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }

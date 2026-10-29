@@ -14,5 +14,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\AmigaSdCreator.Core\AmigaSdCreator.Core.csproj" />
+    <ProjectReference Include="..\..\src\AmigaSdCreator.Linux\AmigaSdCreator.Linux.csproj" />
   </ItemGroup>
 </Project>

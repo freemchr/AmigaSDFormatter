@@ -1,12 +1,10 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
-using System.Windows;
 using AmigaSdCreator.Core.Profiles;
 using AmigaSdCreator.Core.Safety;
-using AmigaSdCreator.Windows;
 
-namespace AmigaSdCreator.App.Services;
+namespace AmigaSdCreator.Ui.Services;
 
 public sealed record RecentOperation(DateTime When, string Kind, string Target, bool Succeeded, string Summary);
 
@@ -25,13 +23,14 @@ public sealed class AppServices
 {
     public static AppServices Current { get; private set; } = null!;
 
-    public static string DataDirectory { get; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AmigaSdCreator");
+    public static IPlatform Platform { get; private set; } = null!;
+    public static string DataDirectory => Platform.DataDirectory;
     public static string ProfileDirectory => Path.Combine(DataDirectory, "Profiles");
     public static string LogDirectory => Path.Combine(DataDirectory, "Logs");
     private static string SettingsPath => Path.Combine(DataDirectory, "settings.json");
 
     public ProfileCatalog Profiles { get; }
-    public WindowsDiskService Disks { get; } = new();
+    public IDiskService Disks => Platform.Disks;
     public Log Log { get; }
     public AppSettings Settings { get; private set; }
     public ObservableCollection<RecentOperation> Recent { get; }
@@ -42,14 +41,19 @@ public sealed class AppServices
     private AppServices()
     {
         Directory.CreateDirectory(DataDirectory);
+        Platform.ClaimFile(DataDirectory);
         Settings = LoadSettings();
-        Log = new Log(LogDirectory) { Enabled = Settings.FileLogging };
+        Log = new Log(LogDirectory, Platform.ClaimFile) { Enabled = Settings.FileLogging };
         Profiles = ProfileCatalog.Load(ProfileDirectory);
         foreach (var e in Profiles.LoadErrors) Log.Warn($"Profile file ignored: {e}");
         Recent = new ObservableCollection<RecentOperation>(Settings.Recent.OrderByDescending(r => r.When).Take(20));
     }
 
-    public static void Initialise() => Current = new AppServices();
+    public static void Initialise(IPlatform platform)
+    {
+        Platform = platform;
+        Current = new AppServices();
+    }
 
     public void UpdateSettings(Func<AppSettings, AppSettings> change)
     {
@@ -61,7 +65,7 @@ public sealed class AppServices
     public void AddRecent(string kind, string target, bool ok, string summary)
     {
         var op = new RecentOperation(DateTime.Now, kind, target, ok, summary);
-        Application.Current.Dispatcher.Invoke(() =>
+        Platform.Invoke(() =>
         {
             Recent.Insert(0, op);
             while (Recent.Count > 20) Recent.RemoveAt(Recent.Count - 1);
@@ -76,6 +80,7 @@ public sealed class AppServices
         {
             var s = Settings with { Recent = Recent.ToList() };
             File.WriteAllText(SettingsPath, JsonSerializer.Serialize(s, ProfileCatalog.JsonOptions));
+            Platform.ClaimFile(SettingsPath);
         }
         catch (IOException ex) { Log.Warn($"Settings not saved: {ex.Message}"); }
     }
@@ -91,23 +96,14 @@ public sealed class AppServices
         return new AppSettings();
     }
 
-    public static void ApplyTheme(string theme)
-    {
-        var dicts = Application.Current.Resources.MergedDictionaries;
-        var name = theme == "Light" ? "Light" : "Dark";
-        var uri = new Uri($"Themes/{name}.xaml", UriKind.Relative);
-        var existing = dicts.FirstOrDefault(d => d.Source?.OriginalString is "Themes/Dark.xaml" or "Themes/Light.xaml");
-        var replacement = new ResourceDictionary { Source = uri };
-        if (existing is null) dicts.Insert(0, replacement);
-        else dicts[dicts.IndexOf(existing)] = replacement;
-    }
+    public static void ApplyTheme(string theme) => Platform.ApplyTheme(theme);
 }
 
 /// <summary>
 /// Plain-text operation log. Messages never contain device serial numbers (DiskDescriptor.LogId is
 /// used instead), and the user's profile path is masked.
 /// </summary>
-public sealed class Log(string directory)
+public sealed class Log(string directory, Action<string>? created = null)
 {
     private readonly object _gate = new();
     private static readonly string Profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -122,13 +118,18 @@ public sealed class Log(string directory)
     private void Write(string level, string message)
     {
         if (!Enabled) return;
-        if (Profile.Length > 0) message = message.Replace(Profile, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+        if (Profile.Length > 1) message = message.Replace(Profile, OperatingSystem.IsWindows() ? "%USERPROFILE%" : "~", StringComparison.OrdinalIgnoreCase);
         try
         {
             lock (_gate)
             {
+                bool isNew = !System.IO.Directory.Exists(directory);
                 System.IO.Directory.CreateDirectory(directory);
-                File.AppendAllText(Path.Combine(directory, $"{DateTime.Now:yyyy-MM-dd}.log"), $"{DateTime.Now:HH:mm:ss} {level,-5} {message}{Environment.NewLine}");
+                if (isNew) created?.Invoke(directory);
+                string file = Path.Combine(directory, $"{DateTime.Now:yyyy-MM-dd}.log");
+                isNew = !File.Exists(file);
+                File.AppendAllText(file, $"{DateTime.Now:HH:mm:ss} {level,-5} {message}{Environment.NewLine}");
+                if (isNew) created?.Invoke(file);
             }
         }
         catch (IOException) { }

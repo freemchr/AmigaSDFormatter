@@ -1,5 +1,5 @@
 using System.IO;
-using AmigaSdCreator.App.Services;
+using AmigaSdCreator.Ui.Services;
 using AmigaSdCreator.Core.Diagnostics;
 using AmigaSdCreator.Core.Imaging;
 using AmigaSdCreator.Core.IO;
@@ -8,7 +8,7 @@ using AmigaSdCreator.Core.Safety;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace AmigaSdCreator.App.ViewModels;
+namespace AmigaSdCreator.Ui.ViewModels;
 
 public sealed partial class BackupRestoreViewModel(MainViewModel main) : PageViewModel
 {
@@ -62,7 +62,7 @@ public sealed partial class BackupRestoreViewModel(MainViewModel main) : PageVie
 
     public string? RestoreSummary =>
         RestoreImage is null || SelectedTarget is null ? null :
-        $"Write {Format.Bytes(RestoreImage.SizeBytes)} from {Path.GetFileName(RestoreImage.Path)} to {SelectedTarget.Title} (disk {SelectedTarget.Disk.Number}, {Format.Bytes(SelectedTarget.Disk.SizeBytes)}). " +
+        $"Write {Format.Bytes(RestoreImage.SizeBytes)} from {Path.GetFileName(RestoreImage.Path)} to {SelectedTarget.Title} ({SelectedTarget.Disk.LocationText}, {Format.Bytes(SelectedTarget.Disk.SizeBytes)}). " +
         (RestoreImage.SizeBytes > SelectedTarget.Disk.SizeBytes ? "The image is LARGER than this card and cannot be written." : "Everything currently on the card will be replaced.");
 
     public bool CanRestore =>
@@ -81,9 +81,9 @@ public sealed partial class BackupRestoreViewModel(MainViewModel main) : PageVie
     {
         Message = null;
         if (SelectedSource is null) { Message = "Choose the card to back up."; return; }
-        if (NeedsElevation) { Message = "Reading a card requires administrator rights. Use 'Restart as administrator'."; return; }
+        if (NeedsElevation) { Message = $"Reading a card requires {AppServices.Platform.AdminRightsText}. Use '{AppServices.Platform.RestartElevatedText}'."; return; }
         string ext = Compress ? ".img.gz" : ".img";
-        var path = Dialogs.SaveFile(Compress ? "Compressed image (*.img.gz)|*.img.gz" : "Raw image (*.img)|*.img", "Save backup image",
+        var path = await Dialogs.SaveFile(Compress ? "Compressed image (*.img.gz)|*.img.gz" : "Raw image (*.img)|*.img", "Save backup image",
             $"amiga-sd-{DateTime.Now:yyyyMMdd-HHmm}{ext}");
         if (path is null) return;
 
@@ -91,6 +91,8 @@ public sealed partial class BackupRestoreViewModel(MainViewModel main) : PageVie
         await RunAsync("Backup", disk.LogId, async (progress, ct) =>
         {
             var manifest = await AppServices.Current.Operations.BackupAsync(disk, path, progress, ct);
+            AppServices.Platform.ClaimFile(path);
+            AppServices.Platform.ClaimFile(DiskImager.ManifestPath(path));
             return $"Backup complete and verified: {Format.Bytes(manifest.SizeBytes)}, SHA-256 {manifest.Sha256[..16]}... A manifest was saved next to the image.";
         });
     }
@@ -98,7 +100,7 @@ public sealed partial class BackupRestoreViewModel(MainViewModel main) : PageVie
     [RelayCommand]
     private async Task ChooseRestoreImageAsync()
     {
-        var path = Dialogs.OpenFile(Dialogs.ImageFilter, "Choose an image to restore");
+        var path = await Dialogs.OpenFile(Dialogs.ImageFilter, "Choose an image to restore");
         if (path is null) return;
         RestoreImagePath = path;
         RestoreImage = null;

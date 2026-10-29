@@ -30,12 +30,17 @@ public sealed record DiskDescriptor
     public bool HasMedia { get; init; } = true;
     public string PartitionStyle { get; init; } = "";
     public IReadOnlyList<string> DriveLetters { get; init; } = [];
+    /// <summary>Where the OS has mounted the disk's readable (FAT) partitions, in partition order: "E:\" or "/media/user/SD0".</summary>
+    public IReadOnlyList<string> MountPoints { get; init; } = [];
+    /// <summary>How the OS names the disk for people, e.g. "Disk 2" or "/dev/sdb".</summary>
+    public string Location { get; init; } = "";
     /// <summary>Mounted volumes (e.g. \\?\Volume{...}\) that must be locked and dismounted before raw writes.</summary>
     public IReadOnlyList<string> VolumePaths { get; init; } = [];
 
     public bool IsCardReaderBus => Bus is StorageBus.Usb or StorageBus.Sd or StorageBus.Mmc;
 
-    public string DisplayName => string.IsNullOrWhiteSpace(FriendlyName) ? $"Disk {Number}" : FriendlyName.Trim();
+    public string DisplayName => string.IsNullOrWhiteSpace(FriendlyName) ? LocationText : FriendlyName.Trim();
+    public string LocationText => string.IsNullOrEmpty(Location) ? $"Disk {Number}" : Location;
 
     /// <summary>Short, non-reversible identifier for logs.</summary>
     public string LogId => $"disk{Number}-{ShortHash(SerialNumber + "|" + UniqueId)}";

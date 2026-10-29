@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AmigaSdCreator.Core\AmigaSdCreator.Core.csproj" />
     <ProjectReference Include="..\AmigaSdCreator.Windows\AmigaSdCreator.Windows.csproj" />
+    <ProjectReference Include="..\AmigaSdCreator.Ui\AmigaSdCreator.Ui.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\app.ico" />

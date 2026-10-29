@@ -1,7 +1,8 @@
 using System.Windows;
 using System.Windows.Threading;
 using AmigaSdCreator.App.Services;
-using AmigaSdCreator.App.ViewModels;
+using AmigaSdCreator.Ui.Services;
+using AmigaSdCreator.Ui.ViewModels;
 
 namespace AmigaSdCreator.App;
 
@@ -11,7 +12,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandled;
-        AppServices.Initialise();
+        AppServices.Initialise(new WpfPlatform());
         AppServices.ApplyTheme(AppServices.Current.Settings.Theme);
         AppServices.Current.Log.Info($"Started (elevated: {AppServices.Current.Disks.IsElevated})");
 

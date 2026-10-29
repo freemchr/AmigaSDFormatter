@@ -65,6 +65,7 @@ public sealed class WindowsDiskService : IDiskService
                     IsRemovableMedia = MapBus(Convert.ToInt32(d["BusType"] ?? 0)) is StorageBus.Usb or StorageBus.Sd or StorageBus.Mmc,
                     PartitionStyle = Convert.ToInt32(d["PartitionStyle"] ?? 0) switch { 1 => "MBR", 2 => "GPT", _ => "RAW" },
                     DriveLetters = letters,
+                    MountPoints = letters.Select(l => l + @":\").ToList(),
                     VolumePaths = parts.SelectMany(p => p.VolumePaths).Distinct().ToList(),
                 });
             }

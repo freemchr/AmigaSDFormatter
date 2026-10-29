@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- View models and services shared by the Windows (WPF) and Linux (Avalonia) apps. No UI toolkit code. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- CommunityToolkit.Mvvm 8.4 generates [ObservableProperty] partial properties only with LangVersion preview. -->
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>AmigaSdCreator.Ui</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AmigaSdCreator.Core\AmigaSdCreator.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,6 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
-using AmigaSdCreator.App.ViewModels;
+using AmigaSdCreator.Ui.ViewModels;
 
 namespace AmigaSdCreator.App;
 

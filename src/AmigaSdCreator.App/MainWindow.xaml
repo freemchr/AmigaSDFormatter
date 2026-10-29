@@ -50,9 +50,9 @@
             <!-- Shown only when not elevated -->
             <Border Background="{DynamicResource PanelAltBrush}" Padding="20,6" Visibility="{Binding IsElevated, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Restart as administrator" Command="{Binding RestartElevatedCommand}" Padding="10,3" Margin="0" FontSize="12"/>
+                    <Button DockPanel.Dock="Right" Content="{Binding RestartElevatedText}" Command="{Binding RestartElevatedCommand}" Padding="10,3" Margin="0" FontSize="12"/>
                     <TextBlock Style="{StaticResource Subtle}" FontSize="12" VerticalAlignment="Center"
-                               Text="Cards are listed, but reading or writing them needs administrator rights."/>
+                               Text="{Binding ElevationNote}"/>
                 </DockPanel>
             </Border>
             <ContentControl Grid.Row="1" Content="{Binding CurrentPage}" Focusable="False"/>

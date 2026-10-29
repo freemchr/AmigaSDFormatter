@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AmigaSdCreator.Ui.ViewModels"
+        x:Class="AmigaSdCreator.Desktop.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="Amiga SD Card Creator" Width="880" Height="760" MinWidth="720" MinHeight="560"
+        WindowStartupLocation="CenterScreen" Background="{DynamicResource WindowBrush}"
+        FontSize="13" Icon="/Assets/logo.png">
+    <Grid RowDefinitions="Auto,Auto,*">
+        <!-- Header -->
+        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,14,16,14">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Classes="Header" Command="{Binding NavigateCommand}" CommandParameter="Diagnose" ToolTip.Tip="Diagnose a card (read-only)">
+                        <TextBlock Text="Diagnose"/>
+                    </Button>
+                    <Button Classes="Header" Command="{Binding NavigateCommand}" CommandParameter="Files" ToolTip.Tip="Copy files to and from Amiga partitions">
+                        <TextBlock Text="Files"/>
+                    </Button>
+                    <Button Classes="Header" Command="{Binding NavigateCommand}" CommandParameter="Backup" ToolTip.Tip="Back up or restore a whole card">
+                        <TextBlock Text="Backup"/>
+                    </Button>
+                    <Button Classes="Header" Command="{Binding NavigateCommand}" CommandParameter="Advanced" ToolTip.Tip="Hardware profiles and raw partition details">
+                        <TextBlock Text="&#x2630;" Classes="Icon"/>
+                    </Button>
+                    <Button Classes="Header" Command="{Binding NavigateCommand}" CommandParameter="Settings" ToolTip.Tip="Settings">
+                        <TextBlock Text="&#x2699;" Classes="Icon" FontSize="17"/>
+                    </Button>
+                </StackPanel>
+
+                <Button DockPanel.Dock="Left" Classes="Header" Command="{Binding NavigateCommand}" CommandParameter="Home"
+                        IsVisible="{Binding !IsHome}" Margin="-8,0,8,0" ToolTip.Tip="Back">
+                    <TextBlock Text="&#x2190;" Classes="Icon" FontSize="18"/>
+                </Button>
+                <Image Source="/Assets/logo.png" Height="72" Stretch="Uniform" Margin="0,4" HorizontalAlignment="Left" VerticalAlignment="Center"
+                       RenderOptions.BitmapInterpolationMode="HighQuality" ToolTip.Tip="Amiga SD Creator - prepare Amiga-compatible storage from Linux"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Shown only when not running as root -->
+        <Border Grid.Row="1" Background="{DynamicResource PanelAltBrush}" Padding="20,6" IsVisible="{Binding !IsElevated}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="{Binding RestartElevatedText}" Command="{Binding RestartElevatedCommand}" Padding="10,3" Margin="0" FontSize="12"/>
+                <TextBlock Classes="Subtle" FontSize="12" VerticalAlignment="Center" Text="{Binding ElevationNote}"/>
+            </DockPanel>
+        </Border>
+
+        <ContentControl Grid.Row="2" Content="{Binding CurrentPage}" Focusable="False"/>
+    </Grid>
+</Window>

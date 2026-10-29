@@ -1,6 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
-using AmigaSdCreator.App.ViewModels;
+using AmigaSdCreator.Ui.ViewModels;
 using AmigaSdCreator.Core.Profiles;
 
 namespace AmigaSdCreator.App.Views;

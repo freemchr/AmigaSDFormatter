@@ -3,7 +3,7 @@ using AmigaSdCreator.Core.Profiles;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace AmigaSdCreator.App.ViewModels;
+namespace AmigaSdCreator.Ui.ViewModels;
 
 /// <summary>A one-click configuration shown as a tile on the home screen, derived from a hardware profile.</summary>
 public sealed record QuickPreset(string Title, string Subtitle, string Glyph, StorageInterfaceProfile Interface, IntendedUse Use, bool CanBoot)
@@ -129,7 +129,7 @@ public sealed partial class PrepareViewModel
         ? "Select an SD card to see the layout."
         : SelectedPreset is null ? (Presets.Count == 0 ? "" : "Choose how the card will be used.")
         : SelectedDevice.ProtectionReason is { } r ? $"This disk is protected ({r})."
-        : NeedsElevation ? "Administrator rights are needed to write cards."
+        : NeedsElevation ? $"Writing cards needs {Services.AppServices.Platform.AdminRightsText}."
         : HasErrors ? Messages.First(m => m.Severity == MessageSeverity.Error).Text
         : "";
 
@@ -161,9 +161,9 @@ public sealed partial class PrepareViewModel
     partial void OnKickstartRomPathChanged(string? value) => OnPropertyChanged(nameof(KickstartRomText));
 
     [RelayCommand]
-    private void ChooseKickstartRom()
+    private async Task ChooseKickstartRomAsync()
     {
-        var p = Services.Dialogs.OpenFile("Kickstart ROM (*.rom;*.bin)|*.rom;*.bin|All files (*.*)|*.*", "Choose your Kickstart ROM file (copied to the card as kick.rom)");
+        var p = await Services.Dialogs.OpenFile("Kickstart ROM (*.rom;*.bin)|*.rom;*.bin|All files (*.*)|*.*", "Choose your Kickstart ROM file (copied to the card as kick.rom)");
         if (p is not null) KickstartRomPath = p;
     }
 
@@ -171,7 +171,7 @@ public sealed partial class PrepareViewModel
     private void ClearKickstartRom() => KickstartRomPath = null;
 
     /// <summary>
-    /// After a PiStorm card is prepared: wait for Windows to mount the new boot partition, download the
+    /// After a PiStorm card is prepared: wait for the OS to mount the new boot partition, download the
     /// latest Emu68 release (cached) and copy it there. Results are added to the verification list.
     /// </summary>
     private async Task InstallEmu68Async(Core.Safety.DeviceIdentity identity, IProgress<string> progress)
@@ -184,15 +184,9 @@ public sealed partial class PrepareViewModel
             progress.Report($"Downloading Emu68 {release.Tag} ({release.AssetName})");
             var zip = await installer.DownloadAsync(release);
 
-            progress.Report("Waiting for Windows to mount the boot partition");
-            string? root = null;
-            for (int i = 0; i < 30 && root is null; i++)
-            {
-                var disk = (await Services.AppServices.Current.Disks.EnumerateAsync()).FirstOrDefault(d => d.DevicePath == identity.DevicePath && d.SerialNumber.Trim() == identity.SerialNumber);
-                if (disk?.DriveLetters.Count > 0) root = disk.DriveLetters[0] + ":\\";
-                else await Task.Delay(1000);
-            }
-            if (root is null) throw new System.IO.IOException("Windows did not mount the boot partition. Remove and reinsert the card, then copy the Emu68 files manually.");
+            progress.Report($"Waiting for {Services.AppServices.Platform.OsName} to mount the boot partition");
+            using var mounted = await Services.AppServices.Platform.MountBootPartitionAsync(identity);
+            string root = mounted.Root;
 
             progress.Report($"Copying Emu68 {release.Tag} to {root}");
             var rom = KickstartRomPath;

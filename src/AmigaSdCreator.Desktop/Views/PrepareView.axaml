@@ -1,0 +1,667 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sys="using:System"
+             xmlns:vm="using:AmigaSdCreator.Ui.ViewModels"
+             xmlns:prof="using:AmigaSdCreator.Core.Profiles"
+             xmlns:lay="using:AmigaSdCreator.Core.Layout"
+             xmlns:safe="using:AmigaSdCreator.Core.Safety"
+             xmlns:diag="using:AmigaSdCreator.Core.Diagnostics"
+             x:Class="AmigaSdCreator.Desktop.Views.PrepareView"
+             x:DataType="vm:PrepareViewModel">
+    <UserControl.DataTemplates>
+        <!-- Status lines shared by several steps: glyph, then the text. -->
+        <DataTemplate DataType="lay:PlanMessage">
+            <TextBlock FontSize="12" Margin="0,1">
+                <Run Text="{Binding Severity, Mode=OneWay, Converter={StaticResource Glyph}}" Foreground="{Binding Severity, Converter={StaticResource StatusBrush}}"/>
+                <Run Text="{Binding Text, Mode=OneWay}"/>
+            </TextBlock>
+        </DataTemplate>
+        <DataTemplate DataType="safe:SafetyCheck">
+            <TextBlock FontSize="12" Margin="0,1">
+                <Run Text="{Binding Passed, Mode=OneWay, Converter={StaticResource Glyph}}" Foreground="{Binding Passed, Converter={StaticResource StatusBrush}}"/>
+                <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold"/>
+                <Run Text="{Binding Detail, Mode=OneWay}" Foreground="{DynamicResource SubtleTextBrush}"/>
+            </TextBlock>
+        </DataTemplate>
+        <DataTemplate DataType="lay:VerificationCheck">
+            <TextBlock FontSize="12" Margin="0,1">
+                <Run Text="{Binding Passed, Mode=OneWay, Converter={StaticResource Glyph}}" Foreground="{Binding Passed, Converter={StaticResource StatusBrush}}"/>
+                <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold"/>
+                <Run Text="{Binding Detail, Mode=OneWay}" Foreground="{DynamicResource SubtleTextBrush}"/>
+            </TextBlock>
+        </DataTemplate>
+    </UserControl.DataTemplates>
+
+    <Grid>
+    <!-- ===================== Simple home screen ===================== -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" IsVisible="{Binding !IsWizard}">
+        <StackPanel Margin="20,16,20,20" MaxWidth="820">
+
+            <!-- Configure (steps 0-6) -->
+            <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=Invert7}">
+                <TextBlock Text="Select SD Card" Classes="SectionLabel"/>
+                <DockPanel Margin="0,0,0,4">
+                    <Button DockPanel.Dock="Right" Classes="Header" Command="{Binding Devices.RefreshCommand}" ToolTip.Tip="Refresh" Margin="6,0,0,0">
+                        <TextBlock Text="&#x27F3;" Classes="Icon" FontSize="18"/>
+                    </Button>
+                    <Grid>
+                        <ComboBox ItemsSource="{Binding Devices.Cards}" SelectedItem="{Binding SelectedDevice}" ItemTemplate="{StaticResource DeviceTemplate}"
+                                  Classes="Large" HorizontalAlignment="Stretch" AutomationProperties.Name="SD card"/>
+                        <TextBlock Text="{Binding CardPlaceholder}" IsHitTestVisible="False" Margin="16,0,40,0" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SubtleTextBrush}" FontSize="14"
+                                   IsVisible="{Binding SelectedDevice, Converter={x:Static ObjectConverters.IsNull}}"/>
+                    </Grid>
+                </DockPanel>
+                <TextBlock Classes="Subtle" FontSize="12" Margin="2,0,0,4"
+                           IsVisible="{Binding Devices.Cards.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}"
+                           Text="Insert a card into a USB or SD card reader - the list updates automatically."/>
+                <TextBlock FontSize="12" Margin="2,0,0,4" Foreground="{DynamicResource InfoBrush}" Text="{Binding Devices.NewCardMessage}">
+                    <TextBlock.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                            <Binding Path="SelectedDevice" Converter="{x:Static ObjectConverters.IsNull}"/>
+                            <Binding Path="Devices.NewCardMessage" Converter="{x:Static StringConverters.IsNotNullOrEmpty}"/>
+                        </MultiBinding>
+                    </TextBlock.IsVisible>
+                </TextBlock>
+
+                <DockPanel Margin="0,12,10,8">
+                    <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding Models}" SelectedItem="{Binding HomeModel}" Width="230"
+                              AutomationProperties.Name="Amiga model">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="prof:HardwareProfile">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Status, Converter={StaticResource StatusText}}" FontSize="11" Margin="10,0,0,0"
+                                               Foreground="{Binding Status, Converter={StaticResource StatusBrush}}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Name}"/>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Text="Choose Amiga Configuration" Classes="SectionLabel" Margin="0" VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="{Binding ModelNote}" Classes="Subtle" FontSize="12" Margin="2,0,10,8" IsVisible="{Binding ModelNote, Converter={StaticResource VisibleWhen}}"/>
+                <ItemsControl ItemsSource="{Binding Presets}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:QuickPreset">
+                            <RadioButton Classes="Tile" GroupName="Preset" Margin="0,0,10,10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Tag="{Binding}"
+                                         IsCheckedChanged="OnPresetChecked" Loaded="OnPresetLoaded">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Right" VerticalAlignment="Top" CornerRadius="9" Padding="7,1"
+                                            Background="{DynamicResource PanelAltBrush}" IsVisible="{Binding #Badge.Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                        <TextBlock x:Name="Badge" Text="{Binding Status, Converter={StaticResource StatusText}}" FontSize="11" Foreground="{Binding Status, Converter={StaticResource StatusBrush}}"/>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Subtitle}" Classes="Subtle" FontSize="12"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </RadioButton>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Summary -->
+                <Border Background="{DynamicResource PanelAltBrush}" CornerRadius="10" Padding="16,10" Margin="0,0,10,10">
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <Grid.Styles>
+                            <Style Selector="Grid > TextBlock">
+                                <Setter Property="Margin" Value="0,5"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                            </Style>
+                        </Grid.Styles>
+                        <TextBlock Text="Partition scheme"/>
+                        <TextBlock Grid.Column="1" Text="{Binding SchemeText}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Row="1" Text="Filesystem"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FilesystemText}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Row="2" Text="Partitions"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PartitionsText}" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Row="3" Text="Boot partition" IsVisible="{Binding SelectedPreset.CanBoot, FallbackValue=False}"/>
+                        <CheckBox Grid.Row="3" Grid.Column="1" Classes="Switch" IsChecked="{Binding BootEnabled}" HorizontalAlignment="Right"
+                                  IsVisible="{Binding SelectedPreset.CanBoot, FallbackValue=False}"/>
+                        <TextBlock Grid.Row="4" Text="Kickstart in your Amiga" IsVisible="{Binding Hardware.HasModes}"
+                                   ToolTip.Tip="The Kickstart version fitted in your Amiga. It sets safe partition sizes for that ROM; no Kickstart file is needed or copied to the card."/>
+                        <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Hardware.Modes}" SelectedItem="{Binding Hardware.SelectedMode}"
+                                  DisplayMemberBinding="{Binding Name, x:DataType=prof:CompatibilityMode}"
+                                  Width="330" HorizontalAlignment="Right" Margin="0,3" IsVisible="{Binding Hardware.HasModes}"
+                                  ToolTip.Tip="The Kickstart version fitted in your Amiga. It sets safe partition sizes for that ROM; no Kickstart file is needed or copied to the card."/>
+                        <TextBlock Grid.Row="5" Text="Unused space" Foreground="{DynamicResource WarnBrush}" IsVisible="{Binding HasUnused}"/>
+                        <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding UnusedText}" Foreground="{DynamicResource WarnBrush}" FontWeight="SemiBold" HorizontalAlignment="Right"
+                                   IsVisible="{Binding HasUnused}"/>
+                        <TextBlock Grid.Row="6" Text="Emu68" IsVisible="{Binding IsEmu68Plan}"/>
+                        <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,3" IsVisible="{Binding IsEmu68Plan}">
+                            <CheckBox Content="Download and install latest" IsChecked="{Binding InstallEmu68}" Margin="0,0,10,0"/>
+                            <ComboBox ItemsSource="{Binding Emu68Variants}" SelectedItem="{Binding Emu68Variant}" Width="150" IsEnabled="{Binding InstallEmu68}"/>
+                        </StackPanel>
+                        <TextBlock Grid.Row="7" Text="Kickstart ROM" IsVisible="{Binding IsEmu68Plan}"/>
+                        <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,3" IsVisible="{Binding IsEmu68Plan}">
+                            <TextBlock Text="{Binding KickstartRomText}" FontWeight="SemiBold" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <Button Content="Choose..." Command="{Binding ChooseKickstartRomCommand}" Padding="8,2" Margin="0"/>
+                            <Button Content="Clear" Command="{Binding ClearKickstartRomCommand}" Padding="8,2" Margin="6,0,0,0"
+                                    IsVisible="{Binding KickstartRomPath, Converter={StaticResource VisibleWhen}}"/>
+                        </StackPanel>
+                        <TextBlock Grid.Row="8" Text="Framethrower" IsVisible="{Binding IsEmu68Plan}"
+                                   ToolTip.Tip="Framethrower video board (Denise socket): sets a 50 Hz HDMI mode and the Emu68 unicam options"/>
+                        <ComboBox Grid.Row="8" Grid.Column="1" ItemsSource="{Binding FramethrowerPresets}" SelectedItem="{Binding Framethrower}"
+                                  Width="230" HorizontalAlignment="Right" Margin="0,3" IsEnabled="{Binding InstallEmu68}" IsVisible="{Binding IsEmu68Plan}"/>
+                    </Grid>
+                </Border>
+
+                <ItemsControl ItemsSource="{Binding Messages}" Margin="2,0,10,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="lay:PlanMessage">
+                            <TextBlock FontSize="12" Margin="0,1">
+                                <Run Text="{Binding Severity, Mode=OneWay, Converter={StaticResource Glyph}}" Foreground="{Binding Severity, Converter={StaticResource StatusBrush}}"/>
+                                <Run Text="{Binding Text, Mode=OneWay}" Foreground="{DynamicResource SubtleTextBrush}"/>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="{Binding QuickHint}" Foreground="{DynamicResource WarnBrush}" Margin="2,0,10,8" IsVisible="{Binding QuickHint, Converter={StaticResource VisibleWhen}}"/>
+
+                <Button Classes="Big" Command="{Binding QuickPrepareCommand}" AutomationProperties.Name="Prepare SD Card" IsEnabled="{Binding CanQuickPrepare}" Margin="0,0,10,0"
+                        Content="Prepare SD Card"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,10,0">
+                    <Button Classes="Link" Content="Customise partitions..." Command="{Binding CustomiseCommand}"/>
+                    <TextBlock Text="  &#x2022;  " Classes="Subtle"/>
+                    <Button Classes="Link" Content="Create an image file instead" Command="{Binding CreateImageCommand}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Confirm (step 7) -->
+            <Border Classes="Card" BorderBrush="{DynamicResource DangerBrush}" BorderThickness="1.5"
+                    IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=7}">
+                <StackPanel>
+                    <TextBlock Text="Erase and prepare this card?" Classes="H2"/>
+                    <TextBlock Text="{Binding TargetDescription}" FontWeight="SemiBold"/>
+                    <TextBlock Classes="Subtle" Margin="0,2,0,8" IsVisible="{Binding Existing, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <Run Text="Currently on the card:"/>
+                        <Run Text="{Binding Existing.Inspection.SchemeDescription, Mode=OneWay, FallbackValue=''}"/>
+                        <Run Text="with"/>
+                        <Run Text="{Binding Existing.Inspection.Partitions.Count, Mode=OneWay, FallbackValue=0}"/>
+                        <Run Text="partition(s)."/>
+                    </TextBlock>
+                    <Border Classes="Callout" BorderBrush="{DynamicResource WarnBrush}"
+                            IsVisible="{Binding Existing.Inspection.Partitions.Count, Converter={StaticResource VisibleWhen}, FallbackValue=False}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Back up first" Command="{Binding Main.NavigateCommand}" CommandParameter="Backup" Margin="8,0,0,0"/>
+                            <TextBlock Text="Everything on this card will be permanently erased." VerticalAlignment="Center" FontWeight="SemiBold"/>
+                        </DockPanel>
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding SafetyChecks}" Margin="0,0,0,8"/>
+                    <DockPanel>
+                        <TextBlock Text="Type ERASE to confirm" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBox Text="{Binding ConfirmText}" Width="110" FontFamily="{DynamicResource MonoFont}"/>
+                        <Button DockPanel.Dock="Right" Content="Erase and prepare" Classes="Danger" Command="{Binding NextCommand}" IsEnabled="{Binding CanGoNext}" Margin="0"/>
+                        <Button DockPanel.Dock="Right" Content="Cancel" Command="{Binding CancelConfirmCommand}"/>
+                        <Border/>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Working (step 8) -->
+            <Border Classes="Card" IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=8}">
+                <StackPanel>
+                    <TextBlock Text="Preparing - do not remove the card" Classes="H2"/>
+                    <ProgressBar IsIndeterminate="True" Margin="0,0,0,10"/>
+                    <ItemsControl ItemsSource="{Binding ProgressLines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="sys:String"><TextBlock Text="{Binding}" Classes="Mono"/></DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Result (step 9) -->
+            <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=9}">
+                <Border Classes="Card" BorderThickness="1.5" BorderBrush="{Binding Succeeded, Converter={StaticResource StatusBrush}}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding Succeeded, Converter={StaticResource Glyph}}" FontSize="22" Margin="0,0,12,0"
+                                   Foreground="{Binding Succeeded, Converter={StaticResource StatusBrush}}" VerticalAlignment="Top"/>
+                        <TextBlock Text="{Binding ResultText}" FontSize="14" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </Border>
+                <Border Classes="Callout" IsVisible="{Binding NextStepsText, Converter={StaticResource VisibleWhen}}">
+                    <StackPanel>
+                        <TextBlock Text="Next steps" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding NextStepsText}"/>
+                    </StackPanel>
+                </Border>
+                <Expander Header="Verification details" Margin="0,0,0,10" HorizontalAlignment="Stretch"
+                          IsVisible="{Binding Checks.Count, Converter={StaticResource VisibleWhen}}">
+                    <ItemsControl ItemsSource="{Binding Checks}" Margin="12,0,0,0"/>
+                </Expander>
+                <Button Content="Done" Classes="Primary" Command="{Binding DoneCommand}" HorizontalAlignment="Left" Padding="24,7"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+
+    <!-- ===================== Full wizard ===================== -->
+    <Grid Margin="20,14" RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsWizard}">
+
+        <!-- Header and step indicator -->
+        <StackPanel>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="Link" Content="Back to simple view" Command="{Binding BackToHomeCommand}" VerticalAlignment="Center"/>
+                <TextBlock Text="Prepare SD Card - custom setup" Classes="H1"/>
+            </DockPanel>
+            <ProgressBar Value="{Binding Step, Mode=OneWay}" Maximum="9" Height="4" MinHeight="4" Margin="0,8,0,4"/>
+            <ItemsControl ItemsSource="{Binding Steps}" Margin="0,0,0,18" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="sys:String">
+                        <TextBlock Text="{Binding}" FontSize="11" Classes="Subtle" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Grid MaxWidth="980" HorizontalAlignment="Stretch">
+
+                <!-- 0: Target -->
+                <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=0}">
+                    <TextBlock Text="What do you want to prepare?" Classes="H2"/>
+                    <RadioButton Classes="Tile" GroupName="Target" HorizontalAlignment="Stretch" IsChecked="{Binding !TargetIsImage}">
+                        <StackPanel>
+                            <TextBlock Text="An SD card connected to this computer" FontWeight="SemiBold"/>
+                            <TextBlock Text="The card will be erased. Protected and system disks cannot be selected." Classes="Subtle"/>
+                        </StackPanel>
+                    </RadioButton>
+                    <Border Classes="Card" Margin="20,0,0,10" IsVisible="{Binding !TargetIsImage}">
+                        <StackPanel>
+                            <ListBox ItemsSource="{Binding Devices.Cards}" SelectedItem="{Binding SelectedDevice}" ItemTemplate="{StaticResource DeviceTemplate}" MinHeight="90" MaxHeight="220"/>
+                            <DockPanel Margin="0,8,0,0">
+                                <Button Content="Refresh" Command="{Binding Devices.RefreshCommand}" Padding="10,3"/>
+                                <TextBlock Classes="Subtle" FontSize="12" VerticalAlignment="Center"
+                                           Text="No card listed? Insert it, wait a moment and press Refresh. Cards in internal readers may need 'Allow internal disks' in Settings."/>
+                            </DockPanel>
+                            <Border Classes="Callout" Margin="0,10,0,0" IsVisible="{Binding NeedsElevation}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="{Binding Main.RestartElevatedText}" Command="{Binding Main.RestartElevatedCommand}" Margin="8,0,0,0"/>
+                                    <TextBlock Text="{Binding Main.ElevationNote}" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Border>
+                            <TextBlock Foreground="{DynamicResource ErrorBrush}" Margin="0,8,0,0"
+                                       Text="{Binding SelectedDevice.ProtectionReason, StringFormat='This disk is protected: {0}', FallbackValue=''}"
+                                       IsVisible="{Binding SelectedDevice.ProtectionReason, Converter={StaticResource VisibleWhen}, FallbackValue=False}"/>
+                        </StackPanel>
+                    </Border>
+                    <RadioButton Classes="Tile" GroupName="Target" HorizontalAlignment="Stretch" IsChecked="{Binding TargetIsImage}">
+                        <StackPanel>
+                            <TextBlock Text="A disk image file (.img / .hdf)" FontWeight="SemiBold"/>
+                            <TextBlock Text="Build and verify the layout safely as a file. Write it to a card later, or use it in an emulator such as WinUAE or FS-UAE." Classes="Subtle"/>
+                        </StackPanel>
+                    </RadioButton>
+                    <Border Classes="Card" Margin="20,0,0,10" IsVisible="{Binding TargetIsImage}">
+                        <Grid ColumnDefinitions="*,Auto,140">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Save as..." Command="{Binding BrowseImageCommand}" Margin="6,0,12,0"/>
+                                <TextBox Text="{Binding ImagePath}"/>
+                            </DockPanel>
+                            <TextBlock Grid.Column="1" Text="Size" VerticalAlignment="Center" Margin="0,0,8,0" Classes="Subtle"/>
+                            <TextBox Grid.Column="2" Text="{Binding ImageSizeText}"
+                                     ToolTip.Tip="For example 8 GB or 512 MB. Use the exact size of the card you will write it to (or smaller)."/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- 1: Model -->
+                <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=1}">
+                    <TextBlock Text="Which Amiga will use this card?" Classes="H2"/>
+                    <ItemsControl ItemsSource="{Binding Hardware.Profiles}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="prof:HardwareProfile">
+                                <RadioButton Classes="Tile" GroupName="Model" HorizontalAlignment="Stretch" Tag="{Binding}"
+                                             IsEnabled="{Binding Interfaces.Count, Converter={StaticResource VisibleWhen}}"
+                                             IsCheckedChanged="OnModelChecked" Loaded="OnModelLoaded">
+                                    <DockPanel>
+                                        <Border DockPanel.Dock="Right" CornerRadius="10" Padding="8,2" BorderThickness="1" VerticalAlignment="Top"
+                                                BorderBrush="{Binding Status, Converter={StaticResource StatusBrush}}"
+                                                IsVisible="{Binding #Badge.Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                            <TextBlock x:Name="Badge" Text="{Binding Status, Converter={StaticResource StatusText}}" FontSize="11" Foreground="{Binding Status, Converter={StaticResource StatusBrush}}"/>
+                                        </Border>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14"/>
+                                            <TextBlock Text="{Binding Summary}" Classes="Subtle"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </RadioButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Classes="Subtle" FontSize="12" Text="Models marked Planned are not supported yet. Selected model:"/>
+                    <TextBlock Text="{Binding Hardware.SelectedProfile.Name, FallbackValue=''}" FontWeight="SemiBold"/>
+                </StackPanel>
+
+                <!-- 2: Connection -->
+                <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=2}">
+                    <TextBlock Text="How will the card be connected?" Classes="H2"/>
+                    <ItemsControl ItemsSource="{Binding Hardware.Interfaces}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="prof:StorageInterfaceProfile">
+                                <RadioButton Classes="Tile" GroupName="Iface" HorizontalAlignment="Stretch" Tag="{Binding}" IsCheckedChanged="OnInterfaceChecked" Loaded="OnInterfaceLoaded">
+                                    <DockPanel>
+                                        <Border DockPanel.Dock="Right" CornerRadius="10" Padding="8,2" BorderThickness="1" VerticalAlignment="Top"
+                                                BorderBrush="{Binding Status, Converter={StaticResource StatusBrush}}"
+                                                IsVisible="{Binding #Badge.Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                            <TextBlock x:Name="Badge" Text="{Binding Status, Converter={StaticResource StatusText}}" FontSize="11" Foreground="{Binding Status, Converter={StaticResource StatusBrush}}"/>
+                                        </Border>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14"/>
+                                            <ItemsControl ItemsSource="{Binding Facts}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="prof:SourcedFact">
+                                                        <TextBlock Text="{Binding Text, StringFormat='• {0}'}" Classes="Subtle" FontSize="12"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </RadioButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border Classes="Callout" IsVisible="{Binding Hardware.SelectedInterface.Unverified.Count, Converter={StaticResource VisibleWhen}, FallbackValue=False}">
+                        <StackPanel>
+                            <TextBlock Text="Not yet verified for this connection" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <ItemsControl ItemsSource="{Binding Hardware.SelectedInterface.Unverified, FallbackValue={x:Null}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="sys:String"><TextBlock Text="{Binding StringFormat='• {0}'}" Classes="Subtle"/></DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- 3: Use -->
+                <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=3}">
+                    <TextBlock Text="What will the card be used for?" Classes="H2"/>
+                    <ItemsControl ItemsSource="{Binding Hardware.Uses}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="prof:IntendedUse">
+                                <RadioButton Classes="Tile" GroupName="Use" HorizontalAlignment="Stretch" Tag="{Binding}" IsCheckedChanged="OnUseChecked" Loaded="OnUseLoaded">
+                                    <TextBlock Text="{Binding Converter={StaticResource UseText}}" FontWeight="SemiBold" FontSize="14"/>
+                                </RadioButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border Classes="Callout" IsVisible="{Binding IsProtectedInterface}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Go to Restore" Command="{Binding GoToRestoreCommand}" Margin="8,0,0,0"/>
+                            <TextBlock Text="This is the ApolloOS system drive. It is never repartitioned here: back it up, or restore an authorised ApolloOS image from Apollo, in Backup &amp; Restore." VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- 4: Inspect -->
+                <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=4}">
+                    <TextBlock Text="Current contents" Classes="H2"/>
+                    <TextBlock Text="Reading the card..." IsVisible="{Binding IsInspecting}"/>
+                    <TextBlock Text="A new image file will be created; there is nothing to inspect." IsVisible="{Binding TargetIsImage}"/>
+                    <TextBlock Text="{Binding InspectError}" Foreground="{DynamicResource WarnBrush}" IsVisible="{Binding InspectError, Converter={StaticResource VisibleWhen}}"/>
+                    <StackPanel IsVisible="{Binding Existing, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <Border Classes="Callout" BorderBrush="{DynamicResource WarnBrush}"
+                                IsVisible="{Binding Existing.Inspection.Partitions.Count, Converter={StaticResource VisibleWhen}, FallbackValue=False}">
+                            <TextBlock FontWeight="SemiBold" Text="This card contains partitions and possibly data. Everything on it will be erased. If you need anything from it, cancel and make a backup first (Backup &amp; Restore)."/>
+                        </Border>
+                        <Border Classes="Card">
+                            <StackPanel>
+                                <TextBlock>
+                                    <Run Text="Layout:" Foreground="{DynamicResource SubtleTextBrush}"/>
+                                    <Run Text="{Binding Existing.Inspection.SchemeDescription, Mode=OneWay, FallbackValue=''}" FontWeight="SemiBold"/>
+                                    <Run Text="  •  Assessment for the selected slot:" Foreground="{DynamicResource SubtleTextBrush}"/>
+                                    <Run Text="{Binding Existing.Verdict, Mode=OneWay, Converter={StaticResource VerdictText}, FallbackValue=''}" FontWeight="SemiBold"/>
+                                </TextBlock>
+                                <TextBlock Text="{Binding Existing.Summary, FallbackValue=''}" Classes="Subtle" Margin="0,4,0,8"/>
+                                <ItemsControl ItemsSource="{Binding Existing.Findings, FallbackValue={x:Null}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="diag:Finding">
+                                            <TextBlock Margin="0,2">
+                                                <Run Text="{Binding Severity, Mode=OneWay, Converter={StaticResource Glyph}}" Foreground="{Binding Severity, Converter={StaticResource StatusBrush}}"/>
+                                                <Run Text="{Binding Title, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="Callout" IsVisible="{Binding Existing.Recommendations.Count, Converter={StaticResource VisibleWhen}, FallbackValue=False}">
+                            <StackPanel>
+                                <TextBlock Text="Diagnosis recommends" FontWeight="SemiBold"/>
+                                <ItemsControl ItemsSource="{Binding Existing.Recommendations, FallbackValue={x:Null}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="diag:Recommendation">
+                                            <TextBlock Text="{Binding Text, StringFormat='• {0}'}" Classes="Subtle"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 5: Configure -->
+                <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=5}">
+                    <TextBlock Text="Recommended configuration" Classes="H2"/>
+                    <TextBlock Classes="Subtle" Margin="0,0,0,12" Text="These settings come from the hardware profile. Change them only if you know you need to (Advanced)."/>
+
+                    <Border Classes="Card" IsVisible="{Binding IsFatPlan}">
+                        <Grid ColumnDefinitions="200,20,200,*">
+                            <StackPanel>
+                                <Label Content="Volume label"/>
+                                <TextBox Text="{Binding FatLabel}" MaxLength="11"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <Label Content="Cluster size (bytes)"/>
+                                <ComboBox ItemsSource="{Binding ClusterChoices}" SelectedItem="{Binding FatClusterBytes}"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="3" Margin="20,18,0,0" Classes="Subtle"
+                                       Text="MBR partition table, one FAT32 partition starting at 1 MiB, created by this app's own formatter (not the system's format tool)."/>
+                        </Grid>
+                    </Border>
+
+                    <StackPanel IsVisible="{Binding IsRdbPlan}">
+                        <Border Classes="Card" IsVisible="{Binding Hardware.HasModes}">
+                            <StackPanel>
+                                <Label Content="Kickstart / compatibility"/>
+                                <ComboBox ItemsSource="{Binding Hardware.Modes}" SelectedItem="{Binding Hardware.SelectedMode}"
+                                          DisplayMemberBinding="{Binding Name, x:DataType=prof:CompatibilityMode}" Width="460" HorizontalAlignment="Left"/>
+                                <ItemsControl ItemsSource="{Binding Hardware.SelectedMode.Notes, FallbackValue={x:Null}}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="sys:String"><TextBlock Text="{Binding StringFormat='• {0}'}" Classes="Subtle" FontSize="12"/></DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="Card">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <Button DockPanel.Dock="Right" Content="Add partition" Command="{Binding AddPartitionCommand}" Margin="0"/>
+                                    <TextBlock Text="Partitions" Classes="H2" Margin="0" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <!-- Header row; the item rows below use the same column widths. -->
+                                <Border Background="{DynamicResource PanelAltBrush}" CornerRadius="4" Padding="4,6">
+                                    <Grid ColumnDefinitions="64,*,96,64,96,44,50,56,100,80,32">
+                                        <Grid.Styles>
+                                            <Style Selector="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource SubtleTextBrush}"/>
+                                                <Setter Property="FontSize" Value="11"/>
+                                                <Setter Property="Margin" Value="3,0"/>
+                                            </Style>
+                                        </Grid.Styles>
+                                        <TextBlock Text="Device"/>
+                                        <TextBlock Grid.Column="1" Text="Volume name"/>
+                                        <TextBlock Grid.Column="2" Text="Size (MiB / rest)"/>
+                                        <TextBlock Grid.Column="3" Text="Actual"/>
+                                        <TextBlock Grid.Column="4" Text="Filesystem"/>
+                                        <TextBlock Grid.Column="5" Text="Boot"/>
+                                        <TextBlock Grid.Column="6" Text="Pri"/>
+                                        <TextBlock Grid.Column="7" Text="Format now"/>
+                                        <TextBlock Grid.Column="8" Text="MaxTransfer"/>
+                                        <TextBlock Grid.Column="9" Text="Cylinders"/>
+                                    </Grid>
+                                </Border>
+                                <ItemsControl x:Name="PartitionRows" ItemsSource="{Binding Partitions}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:PartitionRow">
+                                            <Grid ColumnDefinitions="64,*,96,64,96,44,50,56,100,80,32" Margin="4,2">
+                                                <Grid.Styles>
+                                                    <Style Selector="TextBox">
+                                                        <Setter Property="Margin" Value="2,0"/>
+                                                        <Setter Property="MinHeight" Value="28"/>
+                                                        <Setter Property="Padding" Value="4,2"/>
+                                                    </Style>
+                                                    <Style Selector="ComboBox TextBlock">
+                                                        <Setter Property="TextWrapping" Value="NoWrap"/>
+                                                    </Style>
+                                                    <Style Selector="Grid > TextBlock">
+                                                        <Setter Property="Margin" Value="3,0"/>
+                                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                                        <Setter Property="TextWrapping" Value="NoWrap"/>
+                                                    </Style>
+                                                </Grid.Styles>
+                                                <TextBox Text="{Binding DeviceName, UpdateSourceTrigger=LostFocus}"/>
+                                                <TextBox Grid.Column="1" Text="{Binding VolumeName, UpdateSourceTrigger=LostFocus}"/>
+                                                <TextBox Grid.Column="2" Text="{Binding SizeMiB, UpdateSourceTrigger=LostFocus}"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding ActualSize}"/>
+                                                <ComboBox Grid.Column="4" Margin="2,0" MinHeight="28" Padding="6,2"
+                                                          ItemsSource="{Binding #PartitionRows.((vm:PrepareViewModel)DataContext).DosTypeChoices}"
+                                                          SelectedItem="{Binding DosTypeText}"/>
+                                                <CheckBox Grid.Column="5" IsChecked="{Binding Bootable}" HorizontalAlignment="Center" Margin="0"/>
+                                                <TextBox Grid.Column="6" Text="{Binding BootPriority, UpdateSourceTrigger=LostFocus}"/>
+                                                <CheckBox Grid.Column="7" IsChecked="{Binding FormatNow}" IsEnabled="{Binding CanFormatNow}" HorizontalAlignment="Center" Margin="0"/>
+                                                <TextBox Grid.Column="8" Text="{Binding MaxTransferText, UpdateSourceTrigger=LostFocus}"/>
+                                                <TextBlock Grid.Column="9" Text="{Binding Cylinders}"/>
+                                                <Button Grid.Column="10" Content="✕" Padding="6,0" Margin="2,0,0,0" ToolTip.Tip="Remove partition"
+                                                        Command="{Binding #PartitionRows.((vm:PrepareViewModel)DataContext).RemovePartitionCommand}" CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Classes="Subtle" FontSize="12" Margin="0,8,0,0">
+                                    <Run Text="Unallocated:"/>
+                                    <Run Text="{Binding UnallocatedText, Mode=OneWay}"/>
+                                    <Run Text="  •  'Format now' creates an empty FFS volume (OFS/FFS only). Other filesystems are formatted on the Amiga."/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                        <Border Classes="Card">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <Button DockPanel.Dock="Right" Content="Add handler file..." Command="{Binding AddHandlerCommand}" Margin="0"/>
+                                    <TextBlock Text="Filesystem handlers stored in the RDB" Classes="H2" Margin="0" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <TextBlock Classes="Subtle" FontSize="12"
+                                           Text="Needed for PFS3 or SFS partitions when the handler is not in ROM. Supply your own copy (e.g. pfs3aio from Aminet); none is bundled."/>
+                                <ItemsControl x:Name="HandlerRows" ItemsSource="{Binding Handlers}" Margin="0,6,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="lay:FileSystemDriverPlan">
+                                            <DockPanel Margin="0,2">
+                                                <Button DockPanel.Dock="Right" Content="Remove" Padding="8,2" Margin="0"
+                                                        Command="{Binding #HandlerRows.((vm:PrepareViewModel)DataContext).RemoveHandlerCommand}" CommandParameter="{Binding}"/>
+                                                <TextBlock VerticalAlignment="Center">
+                                                    <Run Text="{Binding DosType.FriendlyName, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                    <Run Text="{Binding SourceName, Mode=OneWay}"/>
+                                                    <Run Text="{Binding VersionText, Mode=OneWay}" Foreground="{DynamicResource SubtleTextBrush}"/>
+                                                </TextBlock>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <ItemsControl ItemsSource="{Binding Messages}"/>
+                </StackPanel>
+
+                <!-- 6: Preview -->
+                <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=6}">
+                    <TextBlock Text="Preview" Classes="H2"/>
+                    <Border Classes="Card">
+                        <ItemsControl ItemsSource="{Binding PreviewLines}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="sys:String"><TextBlock Text="{Binding}" Classes="Mono" Margin="0,2"/></DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding Messages}"/>
+                </StackPanel>
+
+                <!-- 7: Confirm -->
+                <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=7}">
+                    <TextBlock Text="Confirm" Classes="H2"/>
+                    <Border Classes="Card" BorderBrush="{DynamicResource DangerBrush}" BorderThickness="2">
+                        <StackPanel>
+                            <TextBlock Text="Target" Classes="Subtle"/>
+                            <TextBlock Text="{Binding TargetDescription}" FontSize="16" FontWeight="SemiBold" Margin="0,2,0,10"/>
+                            <ItemsControl ItemsSource="{Binding SafetyChecks}" Margin="0,0,0,10"/>
+                            <CheckBox IsChecked="{Binding UnderstandErase}">
+                                <TextBlock Text="I understand that everything currently on this target will be permanently erased."/>
+                            </CheckBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0" IsVisible="{Binding !TargetIsImage}">
+                                <TextBlock Text="Type ERASE to confirm:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBox Text="{Binding ConfirmText}" Width="140" FontFamily="{DynamicResource MonoFont}"/>
+                            </StackPanel>
+                            <TextBlock Classes="Subtle" FontSize="12" Margin="0,10,0,0"
+                                       Text="The card's identity (path, model, serial number and size) is checked again immediately before writing. If it has changed or been removed, nothing is written."/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- 8: Working -->
+                <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=8}">
+                    <TextBlock Text="Preparing..." Classes="H2"/>
+                    <ProgressBar IsIndeterminate="True" Margin="0,0,0,12"/>
+                    <TextBlock Text="Do not remove the card." FontWeight="SemiBold" Foreground="{DynamicResource WarnBrush}" Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding ProgressLines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="sys:String"><TextBlock Text="{Binding}" Classes="Mono"/></DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- 9: Result -->
+                <StackPanel IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=9}">
+                    <Border Classes="Card" BorderThickness="2" BorderBrush="{Binding Succeeded, Converter={StaticResource StatusBrush}}">
+                        <StackPanel>
+                            <TextBlock FontSize="20" FontWeight="SemiBold" Foreground="{Binding Succeeded, Converter={StaticResource StatusBrush}}"
+                                       Text="{Binding Succeeded, Converter={StaticResource Glyph}}"/>
+                            <TextBlock Text="{Binding ResultText}" FontSize="14" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="Card" IsVisible="{Binding Checks.Count, Converter={StaticResource VisibleWhen}}">
+                        <StackPanel>
+                            <TextBlock Text="Verification" Classes="H2"/>
+                            <ItemsControl ItemsSource="{Binding Checks}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="Callout" IsVisible="{Binding NextStepsText, Converter={StaticResource VisibleWhen}}">
+                        <StackPanel>
+                            <TextBlock Text="Next steps" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding NextStepsText}"/>
+                        </StackPanel>
+                    </Border>
+                    <Button Content="Prepare another card" Command="{Binding ResetCommand}" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- Navigation -->
+        <DockPanel Grid.Row="2" Margin="0,14,0,0" LastChildFill="False">
+            <Button DockPanel.Dock="Left" Content="Start over" Command="{Binding ResetCommand}" IsEnabled="{Binding CanGoBack}"/>
+            <Button DockPanel.Dock="Right" Content="Next" Classes="Primary" Command="{Binding NextCommand}" IsEnabled="{Binding CanGoNext}" Padding="26,8" Margin="0"
+                    IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=Invert7}"/>
+            <Button DockPanel.Dock="Right" Content="Erase and prepare" Classes="Danger" Command="{Binding NextCommand}" IsEnabled="{Binding CanGoNext}" Padding="26,8" Margin="0"
+                    IsVisible="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=7}"/>
+            <Button DockPanel.Dock="Right" Content="Back" Command="{Binding BackCommand}" IsEnabled="{Binding CanGoBack}" Margin="0,0,10,0"/>
+        </DockPanel>
+    </Grid>
+    </Grid>
+</UserControl>

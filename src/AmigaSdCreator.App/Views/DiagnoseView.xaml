@@ -1,7 +1,7 @@
 <UserControl x:Class="AmigaSdCreator.App.Views.DiagnoseView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:AmigaSdCreator.App.ViewModels">
+             xmlns:vm="clr-namespace:AmigaSdCreator.Ui.ViewModels;assembly=AmigaSdCreator.Ui">
     <Grid Margin="20,16">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="340"/>

@@ -2,11 +2,11 @@ using System.IO;
 using AmigaSdCreator.Core.FileSystems;
 using AmigaSdCreator.Core.Layout;
 
-namespace AmigaSdCreator.App.Services;
+namespace AmigaSdCreator.Ui.Services;
 
 /// <summary>
 /// The right-hand pane of the file manager: either an Amiga OFS/FFS partition accessed directly, or a
-/// FAT32 partition that Windows has mounted (accessed through its drive letter).
+/// FAT32 partition that the OS has mounted (accessed through its drive letter or mount point).
 /// Paths use '/' separators relative to the volume root.
 /// </summary>
 public interface ITargetVolume : IDisposable
@@ -46,13 +46,13 @@ public sealed class FfsTargetVolume(AmigaFfsVolume volume) : ITargetVolume
     public void Dispose() => volume.Dispose();
 }
 
-/// <summary>A FAT32 partition mounted by Windows (e.g. an A6000 "SD0" transfer card), used through normal file I/O.</summary>
+/// <summary>A FAT32 partition mounted by the OS (e.g. an A6000 "SD0" transfer card), used through normal file I/O.</summary>
 public sealed class FolderTargetVolume(string root, string label, bool readOnly) : ITargetVolume
 {
     private const long Fat32MaxFileBytes = uint.MaxValue; // 4 GiB - 1
 
     public string VolumeName => label;
-    public string KindText => "FAT32 (via Windows)";
+    public string KindText => $"FAT32 (via {AppServices.Platform.OsName})";
     public long FreeBytes => new DriveInfo(root).AvailableFreeSpace;
     public long TotalBytes => new DriveInfo(root).TotalSize;
     public bool IsReadOnly => readOnly;
@@ -94,6 +94,7 @@ public sealed class FolderTargetVolume(string root, string label, bool readOnly)
             using (var output = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20))
                 Copy(content, output, ct);
             File.SetLastWriteTime(dest, modified);
+            AppServices.Platform.ClaimFile(dest);
         }
         catch (OperationCanceledException)
         {
@@ -106,6 +107,7 @@ public sealed class FolderTargetVolume(string root, string label, bool readOnly)
     {
         if (readOnly) throw new IOException("The volume is open read-only.");
         Directory.CreateDirectory(Full(path));
+        AppServices.Platform.ClaimFile(Full(path));
     }
 
     public void Delete(string path)

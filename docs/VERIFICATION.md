@@ -14,6 +14,9 @@
 | Windows app | Built with the Windows .NET 10 SDK with zero warnings; launched on Windows 11; disk enumeration correctly protects the NVMe system disk and a virtual disk; every page loads. |
 | Packaging | `build/publish.ps1` produces the self-contained portable app and the CLI zip. The portable exe starts, and the Windows CLI creates and verifies images. |
 
+| Linux disk layer | Unit tests feed captured `lsblk` / `mountinfo` output: system disk behind LUKS + LVM, swap, boot partition, USB reader with a desktop-mounted FAT32 card, empty reader slot, built-in mmc reader, loop devices. Raw reads through `RawDiskDevice` tested on a file. |
+| Linux app | Built with the Linux .NET 10 SDK with zero warnings; every page renders (checked with the `ASDC_SCREENSHOT` hook on WSLg). The `.deb` builds for amd64 and arm64 and the packaged app starts. |
+
 ## Verified on hardware
 
 | Date | Test | Result |
@@ -31,3 +34,10 @@
 6. **WinUAE:** mount a generated `.hdf` as a hardfile (RDB mode) and confirm partitions mount and validate.
 7. **Installer:** `build/installer.iss` has not been compiled (no Inno Setup on the build machine).
 8. **Device-change watcher:** card insert/remove refreshes the list (`Win32_DeviceChangeEvent`).
+9. **Linux on real hardware** (developed in WSL, which cannot see USB card readers without `usbipd-win`). On a Debian/Ubuntu PC or a Raspberry Pi with a spare card:
+   - The card is listed with the right size and bus, and the system disk shows as protected.
+   - *Restart as root* shows the polkit prompt and reopens the app (X11 and Wayland sessions).
+   - Prepare with the card mounted on the desktop: it is unmounted, written, verified, and the new partition table appears.
+   - Files page: FAT32 via the desktop mount point, FFS with "Allow changes". Backup and Restore.
+   - PiStorm: Emu68 is installed onto the boot partition (desktop mount, or the app's own mount under `/run`).
+   - Files saved as root in your home folder (backups, reports, images) end up owned by you.

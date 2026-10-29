@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AmigaSdCreator.Ui.ViewModels"
+             xmlns:prof="using:AmigaSdCreator.Core.Profiles"
+             x:Class="AmigaSdCreator.Desktop.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="20,16" MaxWidth="760" HorizontalAlignment="Left">
+            <TextBlock Text="Settings" Classes="H1" Margin="0,0,0,16"/>
+
+            <Border Classes="Card">
+                <StackPanel>
+                    <TextBlock Text="Appearance" Classes="H2"/>
+                    <Label Content="Theme"/>
+                    <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" Width="200" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="Card">
+                <StackPanel>
+                    <TextBlock Text="Default hardware profile" Classes="H2"/>
+                    <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding DefaultProfile}" DisplayMemberBinding="{Binding Name, x:DataType=prof:HardwareProfile}" Width="300" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="Card">
+                <StackPanel>
+                    <TextBlock Text="Logging" Classes="H2"/>
+                    <CheckBox Content="Write an operation log" IsChecked="{Binding FileLogging}"/>
+                    <TextBlock Classes="Subtle" FontSize="12" Margin="0,4,0,8"
+                               Text="The log records what was done to which disk. Serial numbers, file contents and your home folder path are never written to it."/>
+                    <Button Content="Open log folder" Command="{Binding OpenLogFolderCommand}" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="Card" BorderBrush="{DynamicResource WarnBrush}">
+                <StackPanel>
+                    <TextBlock Text="Target safety" Classes="H2"/>
+                    <CheckBox Content="Allow internal (SATA / NVMe / SCSI) disks as targets" IsChecked="{Binding AllowNonRemovableBus}"/>
+                    <CheckBox Content="Allow disks larger than 512 GB" IsChecked="{Binding AllowLargeDisks}"/>
+                    <TextBlock Classes="Subtle" FontSize="12" Margin="0,4,0,0"
+                               Text="Leave these off unless your card reader is reported incorrectly by Linux. Disks holding the running system (/, /boot, /usr, /var, /home) or swap can never be written, whatever these settings say."/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="Card">
+                <StackPanel>
+                    <TextBlock Text="Updates" Classes="H2"/>
+                    <TextBlock Text="{Binding Version, StringFormat='Installed version: {0}'}"/>
+                    <TextBlock Classes="Subtle" FontSize="12" Margin="0,4,0,0"
+                               Text="This build does not check for updates automatically. It only connects to the internet when you ask it to download Emu68 for a PiStorm card (from github.com). New versions are published on the project's releases page."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
