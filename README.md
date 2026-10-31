@@ -2,6 +2,8 @@
 
 # Amiga SD Creator
 
+[![Get release alerts in Discord](https://img.shields.io/badge/Discord-Get_release_alerts-5865F2?logo=discord&logoColor=white)](https://sourceping.app/github/freemchr/AmigaSDFormatter)
+
 A desktop utility for **Windows** and **Linux (Debian, Ubuntu, Raspberry Pi OS)** that prepares, diagnoses, backs up and fills SD cards for Amiga computers, without needing HDToolBox on the Amiga.
 
 - **Apollo A6000**: FAT32 data-transfer cards for the SD slot, and Amiga hard-drive (RDB) cards.
